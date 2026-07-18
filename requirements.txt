@@ -1,0 +1,13 @@
+streamlit
+ollama
+pymupdf
+pdf2image
+pytesseract
+pillow
+opencv-python
+transformers==4.35.2
+torch
+torchvision
+flask
+flask-login
+flask-sqlalchemy
