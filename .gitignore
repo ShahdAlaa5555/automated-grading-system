@@ -1,0 +1,9 @@
+hf_cache/
+__pycache__/
+*.pyc
+*.bin
+*.safetensors
+*.db
+uploads/
+test_images/
+libs/
