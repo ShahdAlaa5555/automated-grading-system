@@ -11,7 +11,7 @@ GUC Summer Internship 2026
 ## Modules
 - biology/ — Shahd Alaa Ahmed (58-22017)
 - chemistry/ — [colleague]
-- math/ — [colleague]
+- math/ — Mennatullah Shaaban Amer (58-23237)
 - german/ — [colleague]
 
 ## Tech Stack
