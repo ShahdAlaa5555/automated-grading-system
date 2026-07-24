@@ -7,3 +7,20 @@ __pycache__/
 uploads/
 test_images/
 libs/
+
+
+# Python
+backend/venv/
+backend/__pycache__/
+
+# Environment
+backend/.env
+
+# Generated files
+backend/uploads/
+backend/outputs/
+backend/temp_images/
+
+# Results
+backend/*.json
+backend/images/
