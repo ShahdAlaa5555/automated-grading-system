@@ -14,29 +14,41 @@ def load_json(path):
         return json.load(f)
 
 
-
 # ======================================
 # Grade one subquestion
 # ======================================
 
-def grade_answer(question, reference_answer, student_answer):
+def grade_answer(question, reference_answer, student_answer, subject):
+
+    if subject == "chemistry":
+        teacher = "deutscher Chemielehrer"
+
+    elif subject == "math":
+        teacher = "deutscher Mathematiklehrer"
+
+    elif subject == "biology":
+        teacher = "deutscher Biologielehrer"
+
+    elif subject == "german":
+        teacher = "deutscher Deutschlehrer"
+
+    else:
+        teacher = "deutscher Lehrer"
+
 
     prompt = f"""
-Du bist ein erfahrener deutscher Chemielehrer.
+Du bist ein erfahrener {teacher}.
 
 Bewerte die Antwort eines Schülers.
 
 Frage:
 {question}
 
-
 Musterlösung:
 {reference_answer}
 
-
 Schülerantwort:
 {student_answer}
-
 
 Bewertungsregeln:
 
@@ -45,7 +57,6 @@ Bewertungsregeln:
 - Ignoriere OCR-Fehler, wenn die Bedeutung eindeutig ist.
 - Vergib Teilpunkte, wenn Teile der Antwort richtig sind.
 - Gib kurzes Feedback auf Deutsch.
-
 
 WICHTIG:
 
@@ -56,8 +67,6 @@ Keine Erklärung.
 Keine Gedanken.
 Kein Markdown.
 Keine ```.
-Keine <think> Tags.
-
 
 Format:
 
@@ -67,12 +76,12 @@ Format:
 }}
 """
 
-
     response = chat(
         model=MODEL,
         options={
             "temperature": 0
         },
+        think=False,
         messages=[
             {
                 "role": "user",
@@ -81,17 +90,13 @@ Format:
         ]
     )
 
-
     answer = response["message"]["content"]
-
 
     print("\n========== RAW QWEN RESPONSE ==========")
     print(answer)
     print("=======================================\n")
 
-
     return answer
-
 
 
 # ======================================
@@ -100,17 +105,11 @@ Format:
 
 def parse_grading(result):
 
-    # Remove Qwen thinking section
-
     if "</think>" in result:
         result = result.split("</think>")[-1]
 
-
-    # Find JSON object
-
     start = result.find("{")
     end = result.rfind("}")
-
 
     if start == -1 or end == -1:
 
@@ -119,21 +118,12 @@ def parse_grading(result):
             "feedback": "Kein gültiges JSON vom Modell erhalten."
         }
 
-
-    json_text = result[start:end+1]
-
+    json_text = result[start:end + 1]
 
     try:
-
         return json.loads(json_text)
 
-
-    except Exception as e:
-
-        print("\nFAILED TO PARSE JSON")
-        print(json_text)
-        print(e)
-
+    except Exception:
 
         return {
             "score": 0,
@@ -141,42 +131,29 @@ def parse_grading(result):
         }
 
 
-
 # ======================================
 # Grade complete exam
 # ======================================
 
-def grade_exam(reference_data, student_data):
+def grade_exam(reference_data, student_data, subject):
 
     results = []
 
-
-    for ref_section, stu_section in zip(
-        reference_data,
-        student_data
-    ):
-
+    for ref_section, stu_section in zip(reference_data, student_data):
 
         section = {
-
             "number": ref_section["number"],
-
             "subquestions": []
-
         }
-
-
 
         for ref_sq, stu_sq in zip(
             ref_section["subquestions"],
             stu_section["subquestions"]
         ):
 
-
             print(
                 f"Grading {ref_section['number']}{ref_sq['id']}..."
             )
-
 
             result = grade_answer(
 
@@ -184,14 +161,13 @@ def grade_exam(reference_data, student_data):
 
                 reference_answer=ref_sq["reference_answer"],
 
-                student_answer=stu_sq["answer"]
+                student_answer=stu_sq["answer"],
+
+                subject=subject
 
             )
 
-
             grading = parse_grading(result)
-
-
 
             section["subquestions"].append({
 
@@ -207,14 +183,9 @@ def grade_exam(reference_data, student_data):
 
             })
 
-
         results.append(section)
 
-
-
     return results
-
-
 
 
 # ======================================
@@ -223,22 +194,21 @@ def grade_exam(reference_data, student_data):
 
 if __name__ == "__main__":
 
+    subject = "chemistry"
 
     reference = load_json(
         "outputs/reference_answers.json"
     )
 
-
     student = load_json(
         "student_answers.json"
     )
 
-
     graded = grade_exam(
         reference,
-        student
+        student,
+        subject
     )
-
 
     with open(
         "grading_results.json",
@@ -246,19 +216,11 @@ if __name__ == "__main__":
         encoding="utf-8"
     ) as f:
 
-
         json.dump(
-
             graded,
-
             f,
-
             indent=4,
-
             ensure_ascii=False
-
         )
-
-
 
     print("\nFinished grading.")

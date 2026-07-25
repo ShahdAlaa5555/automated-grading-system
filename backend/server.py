@@ -34,8 +34,8 @@ def home():
     return {"message": "Backend is running"}
 
 
-@app.post("/upload")
-async def upload_exam(file: UploadFile = File(...)):
+@app.post("/{subject}/upload")
+async def upload_exam(subject: str,file: UploadFile = File(...)):
 
     # ==============================
     # Save uploaded file
@@ -61,14 +61,14 @@ async def upload_exam(file: UploadFile = File(...)):
     # Parse exam using Qwen
     # ==============================
 
-    exam = parse_exam(lines)
+    exam = parse_exam(lines, subject)
 
 
     # ==============================
     # Generate reference answers
     # ==============================
 
-    exam = generate_answers(exam)
+    exam = generate_answers(exam, subject)
 
 
     # ==============================
@@ -87,7 +87,7 @@ async def upload_exam(file: UploadFile = File(...)):
     cursor.execute(
         query,
         (
-            "Chemistry",
+            subject,
             file.filename,
             file_path,
             "Uploaded",

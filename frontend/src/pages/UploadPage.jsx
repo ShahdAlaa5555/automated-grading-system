@@ -54,11 +54,16 @@ export default function UploadPage() {
 
       navigate("/processing");
     } catch (err) {
-      console.error(err);
-      setError("Upload failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+  console.error("Upload Error:", err);
+
+  if (err.response) {
+    console.log("Status:", err.response.status);
+    console.log("Data:", err.response.data);
+  }
+
+  setError("Upload failed. Please try again.");
+}
+    
   };
 
   return (

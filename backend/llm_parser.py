@@ -10,18 +10,33 @@ from config import MODEL
 # BUILD PROMPT
 # ==========================================================
 
-def build_prompt(ocr_text):
+def build_prompt(ocr_text, subject):
+
+    if subject == "chemistry":
+        subject_name = "German chemistry"
+
+    elif subject == "math":
+        subject_name = "German mathematics"
+
+    elif subject == "biology":
+        subject_name = "German biology"
+
+    elif subject == "german":
+        subject_name = "German language"
+
+    else:
+        subject_name = "German"
 
     return f"""
-You are an expert German chemistry exam extraction AI.
+You are an expert {subject_name} exam extraction AI.
 
-Your job is to extract the COMPLETE chemistry exam from OCR text.
+Your job is to extract the COMPLETE exam from OCR text.
 
 The OCR contains:
-- printed chemistry questions
+- printed exam questions
 - handwritten student answers
 - points
-- chemical formulas
+- formulas
 - calculations
 - reaction equations
 
@@ -42,20 +57,18 @@ Printed exam text belongs to:
 Student handwriting belongs to:
 "student_answer"
 
-
 Keep:
 - chemical formulas (H2O, HCl, NaOH)
 - equations
 - numbers
 - units (g, mol, L, pH)
 
-
 Return this exact structure:
 
 {{
     "exam":
     {{
-        "subject":"Chemie",
+        "subject":"",
         "title":"",
         "date":""
     }},
@@ -86,13 +99,11 @@ Return this exact structure:
     ]
 }}
 
-
 If there is no student answer:
 "student_answer": ""
 
 If handwriting cannot be read:
 "student_answer": "UNREADABLE"
-
 
 OCR TEXT:
 
@@ -174,28 +185,27 @@ def call_llm(prompt):
     print("\nSending prompt to Qwen...\n")
 
     response = chat(
-
         model=MODEL,
-        format="json",
         think=False,
-
         messages=[
             {
                 "role": "user",
                 "content": prompt
             }
         ]
-
     )
 
-    return response["message"]["content"]
+    print("\n========== QWEN RAW RESPONSE ==========")
+    print(response)
+    print("========================================")
 
+    return response["message"]["content"]
 
 # ==========================================================
 # PARSE EXAM
 # ==========================================================
 
-def parse_exam(lines):
+def parse_exam(lines, subject):
 
     if isinstance(lines, list):
 
@@ -207,7 +217,7 @@ def parse_exam(lines):
 
 
     prompt = build_prompt(
-        ocr_text
+        ocr_text, subject
     )
 
 

@@ -14,45 +14,44 @@ function App() {
   };
 
   const handleUpload = async () => {
-  if (!subject) {
-    alert("Please select a subject.");
-    return;
-  }
+    if (!subject) {
+      alert("Please select a subject.");
+      return;
+    }
 
-  if (!file) {
-    alert("Please upload a file.");
-    return;
-  }
+    if (!file) {
+      alert("Please upload a file.");
+      return;
+    }
 
-  // For now, only Chemistry is implemented
-  if (subject !== "chemistry") {
-    alert("This subject is not implemented yet.");
-    return;
-  }
+    const formData = new FormData();
+    formData.append("file", file);
 
-  const formData = new FormData();
-  formData.append("file", file);
+    try {
+      const response = await axios.post(
+        `http://127.0.0.1:8000/${subject}/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-  try {
-    const response = await axios.post(
-      "http://127.0.0.1:8000/upload",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      console.log(response.data);
+
+      alert("Exam processed successfully!");
+
+    } catch (error) {
+      console.error(error);
+
+      if (error.response) {
+        console.log(error.response.data);
       }
-    );
 
-    console.log(response.data);
-
-    alert("Exam processed successfully!");
-
-  } catch (error) {
-    console.error(error);
-    alert("Upload failed.");
-  }
-};
+      alert("Upload failed.");
+    }
+  };
 
   return (
     <div className="page">
@@ -64,11 +63,14 @@ function App() {
           className="logo"
         />
 
-        <h1>Automated Grading System</h1>
+        <h1>
+          Automated Grading System
+        </h1>
 
         <p className="subtitle">
           AI-powered Exam Evaluation
         </p>
+
 
         <div className="flag">
           <div className="black"></div>
@@ -76,26 +78,48 @@ function App() {
           <div className="yellow"></div>
         </div>
 
-        <label>Subject</label>
+
+        <label>
+          Subject
+        </label>
 
         <select
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
         >
-          <option value="">Select Subject</option>
-          <option value="chemistry">Chemistry</option>
-          <option value="math">Math</option>
-          <option value="biology">Biology</option>
-          <option value="german">German</option>
+          <option value="">
+            Select Subject
+          </option>
+
+          <option value="chemistry">
+            Chemistry
+          </option>
+
+          <option value="biology">
+            Biology
+          </option>
+
+          <option value="math">
+            Math
+          </option>
+
+          <option value="german">
+            German
+          </option>
+
         </select>
 
-        <label>Upload Exam</label>
+
+        <label>
+          Upload Exam
+        </label>
 
         <input
           type="file"
           accept=".pdf,image/*"
           onChange={handleFileChange}
         />
+
 
         {file && (
           <p className="selected">
@@ -105,12 +129,14 @@ function App() {
           </p>
         )}
 
+
         <button
           disabled={!subject || !file}
           onClick={handleUpload}
         >
           Start Grading
         </button>
+
 
       </div>
     </div>
