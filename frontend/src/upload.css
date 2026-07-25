@@ -1,0 +1,124 @@
+body {
+    margin: 0;
+    background: #edf3fb;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Center the card */
+.page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Upload card */
+.card {
+    width: 460px;
+    background: white;
+    padding: 35px 45px;
+    border-radius: 18px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Logo */
+.logo {
+    width: 120px;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+/* Title */
+h1 {
+    text-align: center;
+    color: #0D47A1;
+    font-size: 38px;
+    margin: 0;
+    font-weight: 700;
+}
+
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin: 12px 0 25px;
+    font-size: 17px;
+}
+
+/* German flag */
+.flag {
+    width: 90px;
+    height: 8px;
+    display: flex;
+    margin: 0 auto 30px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.black {
+    flex: 1;
+    background: black;
+}
+
+.red {
+    flex: 1;
+    background: #DD0000;
+}
+
+.yellow {
+    flex: 1;
+    background: #FFCE00;
+}
+
+/* Labels */
+label {
+    display: block;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Inputs */
+select,
+input[type=file] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d8d8d8;
+    border-radius: 10px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+/* Selected file */
+.selected {
+    margin: 18px 0;
+    text-align: center;
+    color: #555;
+    font-size: 15px;
+}
+
+/* Button */
+button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 14px;
+    background: #0D47A1;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .3s;
+}
+
+button:hover {
+    background: #1565C0;
+}
+
+button:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
