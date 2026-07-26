@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File,HTTPException
+
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -28,7 +29,60 @@ app.add_middleware(
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+#by shahd 
+def update_progress(submission_id, status, progress):
 
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE submissions
+        SET status=%s,
+            progress=%s
+        WHERE submission_id=%s
+        """,
+        (
+            status,
+            progress,
+            submission_id
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+
+
+@app.get("/submission/{submission_id}")
+def get_submission(submission_id: int):
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT
+            submission_id,
+            status,
+            progress
+        FROM submissions
+        WHERE submission_id=%s
+        """,
+        (submission_id,)
+    )
+
+    submission = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    return submission
 @app.get("/")
 def home():
     return {"message": "Backend is running"}
@@ -49,29 +103,7 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-
-    # ==============================
-    # OCR
-    # ==============================
-
-    lines = run_pipeline(file_path)
-
-
-    # ==============================
-    # Parse exam using Qwen
-    # ==============================
-
-    exam = parse_exam(lines, subject)
-
-
-    # ==============================
-    # Generate reference answers
-    # ==============================
-
-    exam = generate_answers(exam, subject)
-
-
-    # ==============================
+  # ==============================
     # Save submission in MySQL
     # ==============================
 
@@ -94,11 +126,39 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             0
         )
     )
+    #by shahd 
 
+    submission_id = cursor.lastrowid 
     conn.commit()
 
     cursor.close()
     conn.close()
 
+    # ==============================
+    # OCR
+    # ==============================
+    update_progress(submission_id, "Processing", 20)
+    lines = run_pipeline(file_path)
 
-    return exam
+    
+    update_progress(submission_id, "OCR Complete", 40)
+    # ==============================
+    # Parse exam using Qwen
+    # ==============================
+    update_progress(submission_id, "Grading", 80)
+    exam = parse_exam(lines, subject)
+
+
+    # ==============================
+    # Generate reference answers
+    # ==============================
+
+    exam = generate_answers(exam, subject)
+
+    update_progress(submission_id, "Completed", 100)
+
+
+    return {
+    "submission_id": submission_id,
+    "exam": exam
+}
