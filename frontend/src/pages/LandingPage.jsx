@@ -4,7 +4,6 @@ import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import ImageSlider from "../components/ImageSlider";
 import Footer from "../components/Footer";
-
 const styles = `
 body{
     margin:0;
