@@ -4,6 +4,8 @@ import LandingPage from "./pages/LandingPage";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 // import ResultsPage from "./pages/ResultsPage";
+//Added by Menna: Added LoginPage import
+import LoginPage from "./pages/LoginPage";
 
 function App() {
   return (
@@ -13,6 +15,7 @@ function App() {
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/processing/:submissionId" element={<ProcessingPage />} />
         {/* <Route path="/results/:submissionId" element={<ResultsPage />} /> */}
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
     </BrowserRouter>
   );

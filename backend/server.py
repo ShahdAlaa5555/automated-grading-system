@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File,HTTPException
-
+#Menna: Evidently, I need this to hardcode a teacher to test the login.
+from pydantic import BaseModel 
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -9,6 +10,10 @@ from llm_parser import parse_exam
 from reference_generator import generate_answers
 from database import get_connection
 
+#Menna: just for login testing
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 app = FastAPI()
 
@@ -162,3 +167,20 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     "submission_id": submission_id,
     "exam": exam
 }
+#Menna: for login
+@app.post("/login")
+def login(data: LoginRequest):
+
+    if (
+        data.email == "teacher@test.com"
+        and data.password == "123456"
+    ):
+        return {
+            "success": True,
+            "message": "Login successful"
+        }
+
+    return {
+        "success": False,
+        "message": "Invalid email or password"
+    }
