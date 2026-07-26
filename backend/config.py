@@ -1,6 +1,5 @@
 MODEL = "qwen3:4b"
 
-INPUT_FILE = "images/chemistry.png"
 
 OUTPUT_FOLDER = "outputs"
 
