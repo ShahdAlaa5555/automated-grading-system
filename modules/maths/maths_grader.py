@@ -1,192 +1,48 @@
-import string
+from grading_utils import normalize
+from text_grader import evaluate_text
+from numerical_grader import evaluate_numerical
+from expression_grader import evaluate_expression
 
 
-# =====================================================
-# Helper Functions
-# =====================================================
+def evaluate_question(question):
 
-def normalize(answer):
-    """
-    Normalize answers before comparison.
-    """
-
-    answer = answer.strip().lower()
-
-    # Remove punctuation
-    answer = "".join(
-        c for c in answer
-        if c not in string.punctuation
-    )
-
-    # Remove extra spaces
-    answer = " ".join(answer.split())
-
-    return answer
-
-
-def exact_match(student, reference):
-    """
-    Exact string comparison.
-    """
-
-    return student == reference
-
-
-def numerical_match(student, reference):
-    """
-    Compare numerical answers.
-    """
-
-    try:
-        return float(student) == float(reference)
-
-    except ValueError:
-        return False
-
-
-def keyword_match(student, reference):
-    """
-    Accept answers containing the reference.
-    """
-
-    return reference in student
-
-
-def multiple_answers(student, references):
-    """
-    Support multiple acceptable answers.
-    """
-
-    for answer in references:
-
-        if normalize(answer) == student:
-            return True
-
-    return False
-
-
-def unit_match(student, reference):
-    """
-    Placeholder for unit comparison.
-    """
-
-    student = student.split()
-    reference = reference.split()
-
-    if len(student) != 2:
-        return False
-
-    if len(reference) != 2:
-        return False
-
-    return student[1] == reference[1]
-
-
-# =====================================================
-# Determine Correctness
-# =====================================================
-
-def evaluate_answer(student, reference):
-
-    # -----------------------------------
-    # Multiple correct answers
-    # -----------------------------------
-
-    if isinstance(reference, list):
-
-        if multiple_answers(student, reference):
-
-            return {
-                "correct": True,
-                "score_ratio": 1.0,
-                "method": "Alternative Answer",
-                "reason": "Student used an accepted alternative answer."
-            }
-
-        return {
-            "correct": False,
-            "score_ratio": 0.0,
-            "method": "No Match",
-            "reason": "Student answer is not one of the accepted answers."
-        }
-
-    # -----------------------------------
-    # Numerical comparison
-    # -----------------------------------
-
-    if numerical_match(student, reference):
-
-        return {
-            "correct": True,
-            "score_ratio": 1.0,
-            "method": "Numerical Match",
-            "reason": "Numerical values are equal."
-        }
-
-    # -----------------------------------
-    # Exact comparison
-    # -----------------------------------
-
-    if exact_match(student, reference):
-
-        return {
-            "correct": True,
-            "score_ratio": 1.0,
-            "method": "Exact Match",
-            "reason": "Answers are identical."
-        }
-
-    # -----------------------------------
-    # Keyword comparison
-    # -----------------------------------
-
-    if keyword_match(student, reference):
-
-        return {
-            "correct": True,
-            "score_ratio": 0.75,
-            "method": "Keyword Match",
-            "reason": "Reference answer appears inside the student's answer."
-        }
-
-    # -----------------------------------
-    # No match
-    # -----------------------------------
-
-    return {
-        "correct": False,
-        "score_ratio": 0.0,
-        "method": "No Match",
-        "reason": "Answers do not match."
-    }
-
-
-# =====================================================
-# Grade One Question
-# =====================================================
-
-def grade(question):
-
-    # -----------------------------------
-    # Prepare answers
-    # -----------------------------------
-
-    student = normalize(question["student_answer"])
-
+    student = question["student_answer"]
     reference = question["reference_answer"]
+
+    question_type = question.get("type", "text")
+
+    if question_type != "expression":
+        student = normalize(student)
 
     if isinstance(reference, str):
         reference = normalize(reference)
 
-    print("--------------------------------")
-    print("Student:", student)
-    print("Reference:", reference)
+    # -----------------------------
+    # Dispatch to the correct grader
+    # -----------------------------
+
+    if question_type == "text":
+        return evaluate_text(student, reference)
+
+    if question_type == "numerical":
+        return evaluate_numerical(student, reference)
+
+    if question_type == "expression":
+        return evaluate_expression(student, reference)
+
+    return {
+        "correct": False,
+        "score_ratio": 0,
+        "method": "Unsupported",
+        "reason": "Unsupported question type."
+    }
+def grade(question):
 
     # -----------------------------------
-    # Evaluate answer
+    # Evaluate the question
     # -----------------------------------
 
-    evaluation = evaluate_answer(student, reference)
+    evaluation = evaluate_question(question)
 
     score = question["marks"] * evaluation["score_ratio"]
 
@@ -197,6 +53,8 @@ def grade(question):
     return {
 
         "question": question["question"],
+
+        "type": question["type"],
 
         "student_answer": question["student_answer"],
 
@@ -219,12 +77,6 @@ def grade(question):
         "reason": evaluation["reason"]
 
     }
-
-
-# =====================================================
-# Grade Entire Exam
-# =====================================================
-
 def grade_exam(exam):
 
     results = []
