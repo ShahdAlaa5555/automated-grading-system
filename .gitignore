@@ -27,3 +27,20 @@ hf_cache/
 # OS files
 .DS_Store
 Thumbs.db
+
+
+# Python
+backend/venv/
+backend/__pycache__/
+
+# Environment
+backend/.env
+
+# Generated files
+backend/uploads/
+backend/outputs/
+backend/temp_images/
+
+# Results
+backend/*.json
+backend/images/
