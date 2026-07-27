@@ -46,19 +46,39 @@ export default function UploadPage() {
     formData.append("file", file);
 
     try {
-      await axios.post(endpoints[subject], formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Edited by shhad 
+      // await axios.post(endpoints[subject], formData, {
+      //   headers: {
+      //     "Content-Type": "multipart/form-data",
+      //   },
+      // });
 
-      navigate("/processing");
-    } catch (err) {
-      console.error(err);
-      setError("Upload failed. Please try again.");
-    } finally {
-      setLoading(false);
+      // navigate("/processing");
+
+      const response = await axios.post(
+    endpoints[subject],
+    formData,
+    {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
     }
+);
+
+const submissionId = response.data.submission_id;
+
+navigate(`/processing/${submissionId}`);
+    } catch (err) {
+  console.error("Upload Error:", err);
+
+  if (err.response) {
+    console.log("Status:", err.response.status);
+    console.log("Data:", err.response.data);
+  }
+
+  setError("Upload failed. Please try again.");
+}
+    
   };
 
   return (
