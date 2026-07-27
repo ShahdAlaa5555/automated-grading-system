@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { FaArrowDown } from "react-icons/fa";
-
+//Menna: Adding this so that we can actually navigate to login page :)
+import { useNavigate } from "react-router-dom";
 const styles = `
 .hero{
     min-height:100vh;
@@ -184,7 +185,8 @@ const styles = `
 `;
 
 export default function Hero(){
-
+//Menna: Adding this so that we can actually navigate to login page :)
+const navigate = useNavigate();
     return(
 
         <>
@@ -231,7 +233,7 @@ export default function Hero(){
                 animate={{opacity:1,scale:1}}
 
                 transition={{delay:.7}}
-
+                onClick={() => navigate("/login")}
             >
 
                 Login

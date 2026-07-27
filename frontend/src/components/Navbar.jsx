@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import logo from "../assets/disk-logo.png";
-
+//Menna: Adding this so that we can actually navigate to login page from the button in the navbar :)
+import { useNavigate } from "react-router-dom";
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
@@ -136,6 +137,7 @@ const styles = `
 `;
 
 export default function Navbar() {
+    const navigate = useNavigate();
     return (
         <>
             <style>{styles}</style>
@@ -163,7 +165,9 @@ export default function Navbar() {
 
                     </div>
 
-                    <button className="login-btn">
+                    <button className="login-btn"
+                    onClick={() => navigate("/login")}
+                    >
                         Login
                     </button>
 
