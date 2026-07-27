@@ -89,7 +89,7 @@ def home():
 
 
 @app.post("/{subject}/upload")
-async def upload_exam(subject: str,file: UploadFile = File(...)):
+def upload_exam(subject: str,file: UploadFile = File(...)):
 
     # ==============================
     # Save uploaded file
@@ -146,7 +146,10 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     # Parse exam using Qwen
     # ==============================
     update_progress(submission_id, "Grading", 80)
+    print("Before parse_exam")
     exam = parse_exam(lines, subject)
+    print("After parse_exam")
+   
 
 
     # ==============================

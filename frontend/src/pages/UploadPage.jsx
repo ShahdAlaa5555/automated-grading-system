@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+import "../App.css";
+import diskLogo from "../assets/disk-logo.png";
+
 export default function UploadPage() {
   const navigate = useNavigate();
 
@@ -46,121 +49,119 @@ export default function UploadPage() {
     formData.append("file", file);
 
     try {
-      // Edited by shhad 
-      // await axios.post(endpoints[subject], formData, {
-      //   headers: {
-      //     "Content-Type": "multipart/form-data",
-      //   },
-      // });
-
-      // navigate("/processing");
-
       const response = await axios.post(
-    endpoints[subject],
-    formData,
-    {
-        headers: {
+        endpoints[subject],
+        formData,
+        {
+          headers: {
             "Content-Type": "multipart/form-data",
-        },
-    }
-);
+          },
+        }
+      );
 
-const submissionId = response.data.submission_id;
+      const submissionId = response.data.submission_id;
 
-navigate(`/processing/${submissionId}`);
+      navigate(`/processing/${submissionId}`);
     } catch (err) {
-  console.error("Upload Error:", err);
+      console.error("Upload Error:", err);
 
-  if (err.response) {
-    console.log("Status:", err.response.status);
-    console.log("Data:", err.response.data);
-  }
+      if (err.response) {
+        console.log("Status:", err.response.status);
+        console.log("Data:", err.response.data);
+      }
 
-  setError("Upload failed. Please try again.");
-}
-    
+      setError("Upload failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div
-      style={{
-        width: "500px",
-        margin: "50px auto",
-        padding: "30px",
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        textAlign: "center",
-      }}
-    >
-      <h1>AI Exam Grader</h1>
+    <div className="page">
+      <div className="card">
+        <img
+          src={diskLogo}
+          alt="DISK"
+          className="logo"
+        />
 
-      <div style={{ marginBottom: "20px" }}>
-        <label>Subject</label>
+        <h1>Automated Grading System</h1>
 
-        <br />
+        <p className="subtitle">
+          AI-powered Exam Evaluation
+        </p>
+
+        <div className="flag">
+          <div className="black"></div>
+          <div className="red"></div>
+          <div className="yellow"></div>
+        </div>
+
+        <label>
+          Subject
+        </label>
 
         <select
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginTop: "10px",
-          }}
         >
-          <option value="">Select Subject</option>
-          <option value="chemistry">Chemistry</option>
-          <option value="math">Math</option>
-          <option value="biology">Biology</option>
-          <option value="german">German</option>
+          <option value="">
+            Select Subject
+          </option>
+
+          <option value="chemistry">
+            Chemistry
+          </option>
+
+          <option value="biology">
+            Biology
+          </option>
+
+          <option value="math">
+            Math
+          </option>
+
+          <option value="german">
+            German
+          </option>
         </select>
-      </div>
 
-      <div style={{ marginBottom: "20px" }}>
-        <label>Upload Exam</label>
-
-        <br />
+        <label>
+          Upload Exam
+        </label>
 
         <input
           type="file"
           accept=".pdf,image/*"
           onChange={handleFileChange}
-          style={{ marginTop: "10px" }}
         />
-      </div>
 
-      {file && (
-        <div style={{ marginBottom: "20px" }}>
-          <strong>Selected File:</strong>
+        {file && (
+          <p className="selected">
+            Selected File:
+            <br />
+            {file.name}
+          </p>
+        )}
 
-          <br />
+        {error && (
+          <p
+            style={{
+              color: "red",
+              marginTop: "10px",
+            }}
+          >
+            {error}
+          </p>
+        )}
 
-          {file.name}
-        </div>
-      )}
-
-      {error && (
-        <div
-          style={{
-            color: "red",
-            marginBottom: "20px",
-          }}
+        <button
+          disabled={!subject || !file || loading}
+          onClick={handleUpload}
         >
-          {error}
-        </div>
-      )}
-
-      <button
-        disabled={!subject || !file || loading}
-        onClick={handleUpload}
-        style={{
-          width: "100%",
-          padding: "12px",
-          cursor: "pointer",
-        }}
-      >
-        {loading ? "Uploading..." : "Start Grading"}
-      </button>
+          {loading ? "Uploading..." : "Start Grading"}
+        </button>
+      </div>
     </div>
   );
 }

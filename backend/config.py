@@ -1,6 +1,4 @@
-MODEL = "qwen3:4b"
-
-
+MODEL = "qwen2.5:7b"
 OUTPUT_FOLDER = "outputs"
 
 # OCR settings

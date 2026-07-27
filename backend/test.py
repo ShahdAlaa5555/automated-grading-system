@@ -1,17 +1,16 @@
-from grader import generate_reference_answer
+from ollama import chat
 
+print("Before chat")
 
-print("TEST STARTED")
+response = chat(
+    model="qwen3:4b",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say hello."
+        }
+    ]
+)
 
-
-question = """
-Nenne vier Eigenschaften und Verwendungsmöglichkeiten von Säuren.
-"""
-
-
-answer = generate_reference_answer(question)
-
-
-print("\nREFERENCE ANSWER:\n")
-
-print(answer)
+print("After chat")
+print(response)

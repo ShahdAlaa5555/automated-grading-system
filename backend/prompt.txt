@@ -1,0 +1,155 @@
+
+You are an expert German chemistry exam extraction AI.
+
+Your job is to extract the COMPLETE exam from OCR text.
+
+The OCR contains:
+- printed exam questions
+- handwritten student answers
+- points
+- formulas
+- calculations
+- reaction equations
+
+IMPORTANT RULES:
+
+- Return ONLY valid JSON.
+- Do not explain.
+- Do not add markdown.
+- Do not translate.
+- Do not summarize.
+- Do not remove information.
+- Preserve the original order.
+- Separate printed questions from handwritten answers.
+
+Printed exam text belongs to:
+"question"
+
+Student handwriting belongs to:
+"student_answer"
+
+Keep:
+- chemical formulas (H2O, HCl, NaOH)
+- equations
+- numbers
+- units (g, mol, L, pH)
+
+Return this exact structure:
+
+{
+    "exam":
+    {
+        "subject":"",
+        "title":"",
+        "date":""
+    },
+
+    "student":
+    {
+        "name":"",
+        "class":""
+    },
+
+    "sections":
+    [
+        {
+            "number":1,
+            "title":"",
+            "points":"",
+
+            "subquestions":
+            [
+                {
+                    "id":"a",
+                    "points":"",
+                    "question":"",
+                    "student_answer":""
+                }
+            ]
+        }
+    ]
+}
+
+If there is no student answer:
+"student_answer": ""
+
+If handwriting cannot be read:
+"student_answer": "UNREADABLE"
+
+OCR TEXT:
+
+--------------------
+Name: Lara Schmidt
+10B
+Datum: 24.05.2024
+Klasse:
+Aufgabe 1-Säuren und Basen
+(4 Punkte)
+a) Nenne jeweils vier Eigenschaften von Säuren und Basen.
+Säuren:
+Basen:
+- pH-Wert groBer als 7
+- schmecken sauer
+- fuhlen sich seifig an
+- pH-Wert kleiner als 7
+- farben blaues Lackmuspapier rot
+- farben rotes Lackmuspapier blau
+- enthalten OH--Ionen
+enthalten H+-Ionen
+b)_Wodurch wird der saure bzw. basische Charakter einer Lösung bestimmt?
+(2 Punkte)
+Der saure Charakter wird durch die Konzentration der H+-Ionen
+bestimmt. Der basische Charakter wird durch die Konzentration
+der OH--Ionen bestimmt.
+c) Nenne zwei Beispiele für Säuren und zwei Beispiele für Basen aus dem Alltag
+(2 Punkte)
+Säuren:
+Basen:
+- Essigsaure (z.B. in Essig)
+- Natronlauge (z.B. Abflussreiniger)
+- Zitronensaure (z.B. in Zitronen)
+Aufgabe 2 - Atombau
+a Erkläre den Aufbau eines Atoms.
+(3 Punkte)
+Ein Atom besteht aus einem Atomkern und einer Elektronenh&lle
+Im Kern befinden sich Protonen und Neutronen. Die Elektronen
+bewegen sich in der Elektronenhalle um den Kern.
+b Welche Ladung besitzen Protonen, Neutronen und Elektronen?
+(3 Punkte)
+Protonen:
+positiv geladen (+)
+Neutronen:
+keine Ladung
+(neutral)
+negativ geladen (-)
+Elektronen:
+c) Was versteht man unter Isotopen?
+(2 Punkte)
+Isotope sind Atome desselben Elements, die die gleiche Anzahl an
+besitzen
+Aufgabe 3-Chemische Reaktionen
+a) Woran erkennt man, dass eine chemische Reaktion stattgefunden hat? Nenne drei Merkmale.
+(3 Punkte)
+b) Erkläre den Unterschied zwischen einer chemischen und einer physikalischen Veränderung.
+(2 Punkte)
+Bei einer physikalischen Veranderung &ndert sich nur die Form oder der Zustand,
+neue Stoffe mit anderen Eigenschaften.
+c) Warum gilt bei chemischen Reaktionen das Gesetz der Massenerhaltung?
+(2 Punkte)
+Weil bei einer chemischen Reaktion keine Atome verloren gehen oder entstehen
+Die Atome werden nur neu angeordnet.
+Aufgabe4-Periodensystem
+a) Welche Informationen kann man dem Periodensystem über ein Element entnehmen? Nenne vier.
+(4 Punkte)
+- Elementsymbol
+- Ordnungszahl
+- Atommasse
+- Elementname
+b Warum stehen Elemente einer Gruppe oft für ahnliche chemische Eigenschaften?
+(3 Punkte)
+Weil Elemente einer Gruppe die gleiche Anzahl an Valenzelektronen haben.
+Deshalb reagieren sie ahnlich und bilden ähnliche Verbindungen.
+1 30
+Gesamtpunkte:
+29
+--------------------
