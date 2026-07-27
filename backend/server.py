@@ -1,3 +1,4 @@
+from cv2 import data
 from fastapi import FastAPI, UploadFile, File,HTTPException
 #Menna: Evidently, I need this to hardcode a teacher to test the login.
 from pydantic import BaseModel 
@@ -169,18 +170,46 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
 }
 #Menna: for login
 @app.post("/login")
+@app.post("/login")
 def login(data: LoginRequest):
 
-    if (
-        data.email == "teacher@test.com"
-        and data.password == "123456"
-    ):
-        return {
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM teachers
+        WHERE email = %s
+        """,
+        (data.email,)
+    )
+
+    teacher = cursor.fetchone()
+
+    if teacher is None:
+
+        response = {
+            "success": False,
+            "message": "Invalid email or password"
+        }
+
+    elif teacher["password"] != data.password:
+
+        response = {
+            "success": False,
+            "message": "Invalid email or password"
+        }
+
+    else:
+
+        response = {
             "success": True,
             "message": "Login successful"
         }
 
-    return {
-        "success": False,
-        "message": "Invalid email or password"
-    }
+    cursor.close()
+    conn.close()
+
+    return response
+    

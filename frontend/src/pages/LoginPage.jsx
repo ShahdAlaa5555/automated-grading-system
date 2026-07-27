@@ -178,7 +178,6 @@ async function handleLogin(event) {
                     </h2>
 
                     <form onSubmit={handleLogin}>
-
                         <label className="login-label">
                             Email
                         </label>
