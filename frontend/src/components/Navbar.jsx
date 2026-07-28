@@ -145,8 +145,6 @@ const styles = `
 }
 `;
 
-// export default function Navbar() {
-    
 export default function Navbar({ teacherName }) {
     const navigate = useNavigate();
     return (
@@ -171,12 +169,6 @@ export default function Navbar({ teacherName }) {
                         </div>
                     </div>
 
-                    <button className="login-btn"
-                    onClick={() => navigate("/login")}
-                    >
-                        Login
-                    </button>
-
                     {teacherName ? (
                         <div
                             className="navbar-user"
@@ -186,7 +178,11 @@ export default function Navbar({ teacherName }) {
                             <span>{teacherName}</span>
                         </div>
                     ) : (
-                        <button type="button" className="login-btn">
+                        <button
+                            type="button"
+                            className="login-btn"
+                            onClick={() => navigate("/login")}
+                        >
                             Login
                         </button>
                     )}
