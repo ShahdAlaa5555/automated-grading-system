@@ -25,7 +25,6 @@ const styles = `
     transparent 40%),
 
     #FAFAFA;
-
     overflow:hidden;
 }
 
@@ -61,6 +60,7 @@ const styles = `
 
 .hero-btn{
 
+    width:auto;
     background:#FFCE00;
 
     color:white;
@@ -80,7 +80,6 @@ const styles = `
     font-weight:500;
 
 }
-
 .hero-btn:hover{
 
     background:#DD0000;
@@ -196,13 +195,11 @@ const navigate = useNavigate();
         <section className="hero">
 
             <motion.h1
-
                 initial={{opacity:0,y:40}}
 
                 animate={{opacity:1,y:0}}
 
                 transition={{duration:.9}}
-
             >
 
                 Automated Assessment System
@@ -221,13 +218,12 @@ const navigate = useNavigate();
 
                 Welcome to the digital assessment platform of
                 Deutsche Internationale Schule in Kairo.
-
             </motion.p>
 
             <motion.button
 
+                type="button"
                 className="hero-btn"
-
                 initial={{opacity:0,scale:.8}}
 
                 animate={{opacity:1,scale:1}}
@@ -251,7 +247,6 @@ const navigate = useNavigate();
                 transition={{delay:1.2}}
 
             >
-
                 Scroll Down
 
                 <FaArrowDown/>

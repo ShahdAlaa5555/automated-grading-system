@@ -1,4 +1,6 @@
 from cv2 import data
+import torch
+
 from fastapi import FastAPI, UploadFile, File,HTTPException
 #Menna: Evidently, I need this to hardcode a teacher to test the login.
 from pydantic import BaseModel 
@@ -15,6 +17,8 @@ from database import get_connection
 class LoginRequest(BaseModel):
     email: str
     password: str
+from german.adapter import analyze_german_exam
+
 
 app = FastAPI()
 
@@ -132,37 +136,68 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             0
         )
     )
-    #by shahd 
-
+    
     submission_id = cursor.lastrowid 
     conn.commit()
 
     cursor.close()
     conn.close()
 
-    # ==============================
-    # OCR
-    # ==============================
-    update_progress(submission_id, "Processing", 20)
-    lines = run_pipeline(file_path)
+    normalized_subject = subject.strip().lower()
 
-    
-    update_progress(submission_id, "OCR Complete", 40)
-    # ==============================
-    # Parse exam using Qwen
-    # ==============================
-    update_progress(submission_id, "Grading", 80)
-    exam = parse_exam(lines, subject)
+    if normalized_subject == "german":
+        update_progress(
+            submission_id,
+            "Processing",
+            20,
+        )
 
+        exam = analyze_german_exam(file_path)
 
-    # ==============================
-    # Generate reference answers
-    # ==============================
+        update_progress(
+            submission_id,
+            "OCR Complete",
+            60,
+        )
 
-    exam = generate_answers(exam, subject)
+        update_progress(
+            submission_id,
+            "Grading",
+            80,
+        )
 
-    update_progress(submission_id, "Completed", 100)
+    else:
+        update_progress(
+            submission_id,
+            "Processing",
+            20,
+        )
 
+        lines = run_pipeline(file_path)
+
+        update_progress(
+            submission_id,
+            "OCR Complete",
+            40,
+        )
+
+        update_progress(
+            submission_id,
+            "Grading",
+            80,
+        )
+
+        exam = parse_exam(lines, normalized_subject)
+        exam = generate_answers(
+            exam,
+            normalized_subject,
+        )
+
+    update_progress(
+        submission_id,
+        "Completed",
+        100,
+    )
 
     return {
     "submission_id": submission_id,
@@ -213,3 +248,7 @@ def login(data: LoginRequest):
 
     return response
     
+    #     "submission_id": submission_id,
+    #     "subject": normalized_subject,
+    #     "exam": exam,
+    # }

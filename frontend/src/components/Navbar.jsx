@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { FaUserCircle } from "react-icons/fa";
 import logo from "../assets/disk-logo.png";
 //Menna: Adding this so that we can actually navigate to login page from the button in the navbar :)
 import { useNavigate } from "react-router-dom";
@@ -22,7 +23,6 @@ const styles = `
     background:rgba(255,255,255,.85);
     backdrop-filter:blur(12px);
     -webkit-backdrop-filter:blur(12px);
-
     border-bottom:1px solid rgba(0,0,0,.06);
     transition:all .3s ease;
 }
@@ -68,6 +68,7 @@ const styles = `
 }
 
 .login-btn{
+    width:auto;
     background:#FFCE00;
     color:white;
     border:none;
@@ -84,64 +85,73 @@ const styles = `
 }
 
 .login-btn:hover{
-
     background:#DD0000;
-
     transform:translateY(-2px);
-
     box-shadow:0 10px 25px rgba(221,0,0,.25);
-
 }
 
 .login-btn:active{
-
     transform:scale(.98);
+}
 
+.navbar-user{
+    display:flex;
+    align-items:center;
+    gap:9px;
+
+    padding:11px 18px;
+    border:1px solid rgba(255,206,0,.5);
+    border-radius:40px;
+
+    background:rgba(255,206,0,.12);
+    color:#444;
+
+    font-size:15px;
+    font-weight:600;
+}
+
+.navbar-user svg{
+    color:#DD0000;
+    font-size:20px;
 }
 
 @media(max-width:768px){
-
     .navbar-container{
-
         padding:15px 20px;
-
     }
 
     .logo{
-
         width:45px;
         height:45px;
-
     }
 
     .school-name h2{
-
         font-size:15px;
-
     }
 
     .school-name span{
-
         display:none;
-
     }
 
     .login-btn{
-
         padding:10px 20px;
         font-size:14px;
-
     }
 
+    .navbar-user{
+        padding:9px 13px;
+        font-size:14px;
+    }
 }
 `;
 
-export default function Navbar() {
+// export default function Navbar() {
+    
+export default function Navbar({ teacherName }) {
     const navigate = useNavigate();
     return (
         <>
             <style>{styles}</style>
-
             <motion.nav
                 className="navbar"
                 initial={{ y: -80, opacity: 0 }}
@@ -149,9 +159,7 @@ export default function Navbar() {
                 transition={{ duration: 0.8 }}
             >
                 <div className="navbar-container">
-
                     <div className="logo-container">
-
                         <img
                             src={logo}
                             alt="DISK Logo"
@@ -159,10 +167,8 @@ export default function Navbar() {
                         />
 
                         <div className="school-name">
-                            
                             <span>Deutsche Internationale Schule in Kairo</span>
                         </div>
-
                     </div>
 
                     <button className="login-btn"
@@ -171,6 +177,19 @@ export default function Navbar() {
                         Login
                     </button>
 
+                    {teacherName ? (
+                        <div
+                            className="navbar-user"
+                            aria-label={`Teacher: ${teacherName}`}
+                        >
+                            <FaUserCircle aria-hidden="true" />
+                            <span>{teacherName}</span>
+                        </div>
+                    ) : (
+                        <button type="button" className="login-btn">
+                            Login
+                        </button>
+                    )}
                 </div>
             </motion.nav>
         </>

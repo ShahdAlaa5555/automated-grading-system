@@ -28,6 +28,8 @@ hf_cache/
 .DS_Store
 Thumbs.db
 
+.venv/
+venv/
 
 # Python
 backend/venv/

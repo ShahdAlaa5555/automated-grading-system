@@ -4,10 +4,26 @@ pymupdf
 pdf2image
 pytesseract
 pillow
-opencv-python
+opencv-python==4.6.0.66
 transformers==4.35.2
 torch
 torchvision
 flask
 flask-login
 flask-sqlalchemy
+
+fastapi
+uvicorn
+python-multipart
+mysql-connector-python
+python-dotenv
+paddleocr==2.7.3
+paddlepaddle==2.6.2
+
+# German correction module
+pydantic-settings>=2.5,<3.0
+requests>=2.32,<3.0
+numpy==1.26.4
+safetensors>=0.4,<1.0
+huggingface-hub>=0.27,<1.0
+sentencepiece>=0.2,<0.3
