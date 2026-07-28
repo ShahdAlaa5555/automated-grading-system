@@ -2,8 +2,10 @@ import React from "react";
 
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
+import HowItWorks from "../components/Howitworks";
 import ImageSlider from "../components/ImageSlider";
 import Footer from "../components/Footer";
+
 const styles = `
 body{
     margin:0;
@@ -31,9 +33,9 @@ export default function LandingPage(){
 
             <Hero/>
 
-            <ImageSlider/>
+            
 
-            <Footer/>
+           
 
         </div>
 
