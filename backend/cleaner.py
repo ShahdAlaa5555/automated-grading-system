@@ -80,8 +80,7 @@ def pdf_to_images(pdf_path):
 
     pages = convert_from_path(
         pdf_path,
-        dpi=300,
-        poppler_path=r"C:\Users\User\OneDrive\Desktop\poppler-26.02.0\Library\bin"
+        dpi=300
     )
 
 
