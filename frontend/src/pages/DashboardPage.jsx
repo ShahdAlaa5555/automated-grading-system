@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   FaArrowRight,
@@ -5,42 +6,79 @@ import {
   FaCalculator,
   FaFlask,
   FaLeaf,
+  FaLaptop,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./dashboard.css";
 
-// Temporary mock data until login and teacher APIs are connected.
-const teacher = {
-  name: "Farida",
-  subjects: [
-    {
-      id: "german",
-      name: "German",
-      description: "German language exams",
-      icon: FaBookOpen,
-    },
-    {
-      id: "biology",
-      name: "Biology",
-      description: "Biology exams",
-      icon: FaLeaf,
-    },
-    {
-      id: "chemistry",
-      name: "Chemistry",
-      description: "Chemistry exams",
-      icon: FaFlask,
-    },
-    {
-      id: "math",
-      name: "Mathematics",
-      description: "Mathematics exams",
-      icon: FaCalculator,
-    },
-  ],
+const subjectCatalog = {
+  german: { name: "German", description: "German language exams", icon: FaBookOpen },
+  biology: { name: "Biology", description: "Biology exams", icon: FaLeaf },
+  chemistry: { name: "Chemistry", description: "Chemistry exams", icon: FaFlask },
+  math: { name: "Mathematics", description: "Mathematics exams", icon: FaCalculator },
+  mathematics: { name: "Mathematics", description: "Mathematics exams", icon: FaCalculator },
+  physics: { name: "Physics", description: "Physics exams", icon: FaLaptop },
+  "computer science": { name: "Computer Science", description: "Computer science exams", icon: FaLaptop },
 };
 
+function getSubjectCard(subject) {
+  if (typeof subject === "string") {
+    const normalizedSubject = subject.trim().toLowerCase();
+    const catalogEntry = subjectCatalog[normalizedSubject] || subjectCatalog[normalizedSubject.replace(/\s+/g, "")];
+
+    if (catalogEntry) {
+      return {
+        id: normalizedSubject,
+        name: catalogEntry.name,
+        description: catalogEntry.description,
+        icon: catalogEntry.icon,
+      };
+    }
+
+    return {
+      id: normalizedSubject,
+      name: subject,
+      description: "Teacher-led assessment", 
+      icon: FaBookOpen,
+    };
+  }
+
+  return {
+    id: subject.id || subject.name,
+    name: subject.name,
+    description: subject.description || "Teacher-led assessment",
+    icon: subject.icon || FaBookOpen,
+  };
+}
+
 export default function DashboardPage() {
+  const [teacher, setTeacher] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedTeacher = localStorage.getItem("teacherProfile");
+
+    if (!savedTeacher) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setTeacher(JSON.parse(savedTeacher));
+    } catch (error) {
+      console.error("Failed to parse saved teacher profile", error);
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  if (!teacher) {
+    return null;
+  }
+
+  const subjects = Array.isArray(teacher.subjects) ? teacher.subjects : [];
+  const subjectCards = subjects.map((subject) => getSubjectCard(subject));
+
   return (
     <div className="dashboard-page">
       <Navbar teacherName={teacher.name} />
@@ -55,15 +93,15 @@ export default function DashboardPage() {
           <div className="dashboard-welcome__text">
             <p className="dashboard-eyebrow">Teacher dashboard</p>
             <h1>
-              Hello, <span>{teacher.name}</span> 👋
+              Hello <span>{teacher.name.split(" ")[0]}!</span>
             </h1>
             <p>Choose one of your subjects to start correcting exams.</p>
           </div>
 
-          {/* <div className="dashboard-summary">
-            <strong>{teacher.subjects.length}</strong>
-            <span>Assigned subjects</span>
-          </div> */}
+          <div className="dashboard-summary">
+            <strong>{subjectCards.length}</strong>
+            <span>Subjects assigned</span>
+          </div>
         </motion.section>
 
         <section className="subjects-section" aria-labelledby="subjects-title">
@@ -80,7 +118,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="subjects-grid">
-            {teacher.subjects.map((subject, index) => {
+            {subjectCards.map((subject, index) => {
               const SubjectIcon = subject.icon;
 
               return (
@@ -104,7 +142,6 @@ export default function DashboardPage() {
                     <p>{subject.description}</p>
                   </div>
 
-                  {/* Add the upload navigation later when that flow is ready. */}
                   <button type="button" className="start-correcting-btn">
                     Start correcting
                     <FaArrowRight />
