@@ -7,7 +7,29 @@ __pycache__/
 uploads/
 test_images/
 libs/
+#Menna: Adding these just to push :)
+# Python virtual environments
+.venv/
+venv/
+env/
+# Hugging Face cache
+hf_cache/
 
+# Model files
+*.bin
+*.safetensors
+*.pt
+*.pth
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+.venv/
+venv/
 
 # Python
 backend/venv/

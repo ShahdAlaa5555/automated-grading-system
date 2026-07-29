@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-import "../App.css";
+import "../upload.css";
 import diskLogo from "../assets/disk-logo.png";
 
 export default function UploadPage() {

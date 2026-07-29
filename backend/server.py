@@ -1,5 +1,9 @@
-from fastapi import FastAPI, UploadFile, File,HTTPException
+from cv2 import data
+import torch
 
+from fastapi import FastAPI, UploadFile, File,HTTPException
+#Menna: Evidently, I need this to hardcode a teacher to test the login.
+from pydantic import BaseModel 
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
@@ -8,6 +12,12 @@ from cleaner import run_pipeline
 from llm_parser import parse_exam
 from reference_generator import generate_answers
 from database import get_connection
+
+#Menna: just for login testing
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+from german.adapter import analyze_german_exam
 
 
 app = FastAPI()
@@ -89,7 +99,7 @@ def home():
 
 
 @app.post("/{subject}/upload")
-def upload_exam(subject: str,file: UploadFile = File(...)):
+async def upload_exam(subject: str,file: UploadFile = File(...)):
 
     # ==============================
     # Save uploaded file
@@ -126,42 +136,119 @@ def upload_exam(subject: str,file: UploadFile = File(...)):
             0
         )
     )
-    #by shahd 
-
+    
     submission_id = cursor.lastrowid 
     conn.commit()
 
     cursor.close()
     conn.close()
 
-    # ==============================
-    # OCR
-    # ==============================
-    update_progress(submission_id, "Processing", 20)
-    lines = run_pipeline(file_path)
+    normalized_subject = subject.strip().lower()
 
-    
-    update_progress(submission_id, "OCR Complete", 40)
-    # ==============================
-    # Parse exam using Qwen
-    # ==============================
-    update_progress(submission_id, "Grading", 80)
-    print("Before parse_exam")
-    exam = parse_exam(lines, subject)
-    print("After parse_exam")
-   
+    if normalized_subject == "german":
+        update_progress(
+            submission_id,
+            "Processing",
+            20,
+        )
 
+        exam = analyze_german_exam(file_path)
 
-    # ==============================
-    # Generate reference answers
-    # ==============================
+        update_progress(
+            submission_id,
+            "OCR Complete",
+            60,
+        )
 
-    exam = generate_answers(exam, subject)
+        update_progress(
+            submission_id,
+            "Grading",
+            80,
+        )
 
-    update_progress(submission_id, "Completed", 100)
+    else:
+        update_progress(
+            submission_id,
+            "Processing",
+            20,
+        )
 
+        lines = run_pipeline(file_path)
+
+        update_progress(
+            submission_id,
+            "OCR Complete",
+            40,
+        )
+
+        update_progress(
+            submission_id,
+            "Grading",
+            80,
+        )
+
+        exam = parse_exam(lines, normalized_subject)
+        exam = generate_answers(
+            exam,
+            normalized_subject,
+        )
+
+    update_progress(
+        submission_id,
+        "Completed",
+        100,
+    )
 
     return {
     "submission_id": submission_id,
     "exam": exam
 }
+#Menna: for login
+@app.post("/login")
+@app.post("/login")
+def login(data: LoginRequest):
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM teachers
+        WHERE email = %s
+        """,
+        (data.email,)
+    )
+
+    teacher = cursor.fetchone()
+
+    if teacher is None:
+
+        response = {
+            "success": False,
+            "message": "Invalid email or password"
+        }
+
+    elif teacher["password"] != data.password:
+
+        response = {
+            "success": False,
+            "message": "Invalid email or password"
+        }
+
+    else:
+
+        response = {
+            "success": True,
+            "message": "Login successful"
+        }
+
+    cursor.close()
+    conn.close()
+
+    return response
+    
+    #     "submission_id": submission_id,
+    #     "subject": normalized_subject,
+    #     "exam": exam,
+    # }
