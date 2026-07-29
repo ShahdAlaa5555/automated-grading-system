@@ -22,6 +22,59 @@ from german.adapter import analyze_german_exam
 
 app = FastAPI()
 
+from results import router as results_router
+
+app.include_router(results_router)
+def _extract_teacher_name(teacher_record):
+    for key in ("name", "full_name", "teacher_name", "display_name"):
+        value = teacher_record.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    first_name = teacher_record.get("first_name")
+    last_name = teacher_record.get("last_name")
+    if isinstance(first_name, str) and first_name.strip() and isinstance(last_name, str) and last_name.strip():
+        return f"{first_name.strip()} {last_name.strip()}"
+
+    return "Teacher"
+
+
+def _extract_teacher_subjects(teacher_record, fallback_profile):
+    for key in ("subjects", "subjects_taught", "teaching_subjects", "subject_names"):
+        value = teacher_record.get(key)
+        if isinstance(value, list):
+            subjects = [str(item).strip() for item in value if str(item).strip()]
+            if subjects:
+                return subjects
+        elif isinstance(value, str) and value.strip():
+            subjects = [item.strip() for item in value.split(",") if item.strip()]
+            if subjects:
+                return subjects
+
+    if fallback_profile and fallback_profile.get("subjects"):
+        return fallback_profile["subjects"]
+
+    return []
+
+def get_teacher_courses(cursor, teacher_id):
+    cursor.execute(
+        """
+        SELECT c.course_name
+        FROM teacher_courses AS tc
+        INNER JOIN courses AS c
+            ON c.course_id = tc.course_id
+        WHERE tc.teacher_id = %s
+        ORDER BY c.course_name
+        """,
+        (teacher_id,)
+    )
+
+    course_rows = cursor.fetchall()
+
+    return [
+        row["course_name"]
+        for row in course_rows
+    ]
 
 # ==========================================
 # Allow React to communicate with FastAPI
@@ -192,55 +245,96 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             exam,
             normalized_subject,
         )
-
+        save_results(submission_id, exam)
     update_progress(
         submission_id,
-        "Completed",
+        "Released",
         100,
     )
-
+    print(exam)
     return {
     "submission_id": submission_id,
     "exam": exam
 }
-#Menna: for login
-@app.post("/login")
+
+def save_results(submission_id, exam):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for q in exam["questions"]:
+
+        cursor.execute(
+            """
+            INSERT INTO question_results
+            (
+                submission_id,
+                question_number,
+                question_text,
+                student_answer,
+                ai_is_correct,
+                ai_feedback
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+            """,
+            (
+                submission_id,
+                q["number"],
+                q["question"],
+                q["student_answer"],
+                q["is_correct"],
+                q["feedback"]
+            )
+        )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+
 @app.post("/login")
 def login(data: LoginRequest):
+    email = data.email.strip().lower()
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute(
-        """
-        SELECT *
-        FROM teachers
-        WHERE email = %s
-        """,
-        (data.email,)
-    )
+    try:
+        cursor.execute(
+            """
+            SELECT
+                teacher_id,
+                full_name,
+                email,
+                password
+            FROM teachers
+            WHERE email = %s
+            """,
+            (email,)
+        )
 
-    teacher = cursor.fetchone()
+        teacher = cursor.fetchone()
 
-    if teacher is None:
+        if teacher is None or teacher["password"] != data.password:
+            return {
+                "success": False,
+                "message": "Invalid email or password",
+            }
 
-        response = {
-            "success": False,
-            "message": "Invalid email or password"
-        }
+        teacher_subjects = get_teacher_courses(
+            cursor,
+            teacher["teacher_id"]
+        )
 
-    elif teacher["password"] != data.password:
-
-        response = {
-            "success": False,
-            "message": "Invalid email or password"
-        }
-
-    else:
-
-        response = {
+        return {
             "success": True,
-            "message": "Login successful"
+            "message": "Login successful",
+            "teacher": {
+                "id": teacher["teacher_id"],
+                "name": teacher["full_name"],
+                "email": teacher["email"],
+                "subjects": teacher_subjects,
+            },
         }
 
     cursor.close()
@@ -252,3 +346,6 @@ def login(data: LoginRequest):
     #     "subject": normalized_subject,
     #     "exam": exam,
     # }
+    finally:
+        cursor.close()
+        conn.close()
