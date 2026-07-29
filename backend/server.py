@@ -22,7 +22,9 @@ from german.adapter import analyze_german_exam
 
 app = FastAPI()
 
+from results import router as results_router
 
+app.include_router(results_router)
 def _extract_teacher_name(teacher_record):
     for key in ("name", "full_name", "teacher_name", "display_name"):
         value = teacher_record.get(key)
@@ -243,17 +245,53 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             exam,
             normalized_subject,
         )
-
+        save_results(submission_id, exam)
     update_progress(
         submission_id,
-        "Completed",
+        "Released",
         100,
     )
-
+    print(exam)
     return {
     "submission_id": submission_id,
     "exam": exam
 }
+
+def save_results(submission_id, exam):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for q in exam["questions"]:
+
+        cursor.execute(
+            """
+            INSERT INTO question_results
+            (
+                submission_id,
+                question_number,
+                question_text,
+                student_answer,
+                ai_is_correct,
+                ai_feedback
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+            """,
+            (
+                submission_id,
+                q["number"],
+                q["question"],
+                q["student_answer"],
+                q["is_correct"],
+                q["feedback"]
+            )
+        )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+
 @app.post("/login")
 def login(data: LoginRequest):
     email = data.email.strip().lower()
