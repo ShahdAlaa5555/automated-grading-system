@@ -115,39 +115,35 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
-async function handleLogin(event) {
 
-    event.preventDefault();
+    async function handleLogin(event) {
 
-    const response = await fetch(
-        "http://127.0.0.1:8000/login",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email,
-                password
-            })
+        event.preventDefault();
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/login",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+            localStorage.setItem("teacherProfile", JSON.stringify(data.teacher));
+            navigate("/dashboard");
+        } else {
+            alert(data.message);
         }
-    );
-
-    const data = await response.json();
-
-    if (data.success) {
-
-        alert("Login successful!");
-
-        navigate("/");
-
-    } else {
-
-        alert(data.message);
 
     }
-
-}
 
     return (
 

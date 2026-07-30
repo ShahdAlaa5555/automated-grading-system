@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+
+// Point this at your FastAPI backend. Set VITE_API_URL in your .env file,
+// e.g. VITE_API_URL=http://localhost:8000
+const API_URL = "http://localhost:8000";
 
 const styles = `
 .results-page{
@@ -9,6 +15,7 @@ const styles = `
     radial-gradient(circle at bottom right, rgba(255,206,0,.1), transparent 40%),
     #FAFAFA;
     padding:110px 20px 80px;
+    font-family:'Poppins',sans-serif;
 }
 
 .rp-container{
@@ -163,6 +170,7 @@ const styles = `
     display:flex;
     align-items:center;
     gap:10px;
+    flex-wrap:wrap;
 }
 
 .q-number span:first-child{
@@ -220,6 +228,11 @@ const styles = `
     background:rgba(255,206,0,.08);
 }
 
+.edit-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
 .q-text{
     font-size:15.5px;
     font-weight:500;
@@ -265,6 +278,7 @@ const styles = `
     display:flex;
     flex-direction:column;
     gap:12px;
+    overflow:hidden;
 }
 
 .verdict-toggle{
@@ -309,10 +323,16 @@ const styles = `
     color:#333;
     resize:vertical;
     outline:none;
+    box-sizing:border-box;
 }
 
 .edit-panel textarea:focus{
     border-color:#FFCE00;
+}
+
+.edit-error{
+    font-size:12.5px;
+    color:#DD0000 !important;
 }
 
 .edit-actions{
@@ -330,6 +350,11 @@ const styles = `
     cursor:pointer;
     border:none;
     transition:.2s;
+}
+
+.edit-actions button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
 }
 
 .cancel-btn{
@@ -350,103 +375,154 @@ const styles = `
     background:#DD0000;
 }
 
+/* ---- status states ---- */
+
+.status-page{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#FAFAFA;
+    padding:40px 20px;
+    font-family:'Poppins',sans-serif;
+    text-align:center;
+}
+
+.status-card{
+    background:#fff;
+    border-radius:24px;
+    box-shadow:0 20px 50px rgba(0,0,0,.06);
+    padding:40px 32px;
+    max-width:380px;
+    width:100%;
+}
+
+.status-spinner{
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    border:3px solid #f0f0f0;
+    border-top-color:#FFCE00;
+    margin:0 auto 20px;
+    animation:spin .8s linear infinite;
+}
+
+@keyframes spin{
+    to{ transform:rotate(360deg); }
+}
+
+.status-card h2{
+    font-size:17px;
+    font-weight:600;
+    color:#222 !important;
+    margin-bottom:8px;
+}
+
+.status-card p{
+    font-size:14px;
+    color:#888 !important;
+    margin-bottom:20px;
+}
+
+.status-card .retry-btn{
+    background:#DD0000;
+    color:#fff;
+    border:none;
+    padding:10px 22px;
+    border-radius:20px;
+    font-size:13.5px;
+    font-weight:600;
+    font-family:'Poppins',sans-serif;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.status-card .retry-btn:hover{
+    background:#c40000;
+}
+
+/* ---- responsive: mobile-first tightening ---- */
+
 @media(max-width:600px){
+    .results-page{
+        padding:90px 14px 60px;
+    }
     .summary-card{
         flex-direction:column;
         text-align:center;
+        padding:26px 22px;
     }
     .q-top{
+        flex-direction:column;
+    }
+    .q-card{
+        padding:20px 18px;
+    }
+}
+
+@media(max-width:400px){
+    .rp-meta h1{
+        font-size:24px;
+    }
+    .edit-btn{
+        width:100%;
+    }
+    .verdict-toggle{
         flex-direction:column;
     }
 }
 `;
 
-// ------------------------------------------------------------------
-// SAMPLE DATA — replace with real data fetched from your backend.
-// Whatever subject module produced it (Math, German, Chemistry...),
-// normalize its output to exactly this shape before passing it in.
-// This is the "uniform contract" every module should target.
-// ------------------------------------------------------------------
-const SAMPLE_SUBMISSION = {
-    student_name: "Layla Ahmed",
-    subject: "Chemistry",
-    filename: "chemistrytest.pdf",
-};
-
-const SAMPLE_QUESTIONS = [
-    {
-        question_result_id: 1,
-        question_number: 1,
-        question_text: "What is the molar mass of NaCl?",
-        student_answer: "58.44 g/mol",
-        is_correct: true,
-        feedback: "Correct — well done, accurate to two decimal places.",
-        edited: false,
-    },
-    {
-        question_result_id: 2,
-        question_number: 2,
-        question_text: "Balance the equation: H2 + O2 -> H2O",
-        student_answer: "H2 + O2 -> H2O",
-        is_correct: false,
-        feedback: "Not balanced. You need 2H2 + O2 -> 2H2O.",
-        edited: false,
-    },
-    {
-        question_result_id: 3,
-        question_number: 3,
-        question_text: "Define an exothermic reaction.",
-        student_answer: "A reaction that releases heat energy to the surroundings.",
-        is_correct: true,
-        feedback: "Good, clear and accurate definition.",
-        edited: false,
-    },
-];
-
-function QuestionCard({ question, onSave }){
-
+function QuestionCard({ question, onSave }) {
     const [editing, setEditing] = useState(false);
     const [draftCorrect, setDraftCorrect] = useState(question.is_correct);
     const [draftFeedback, setDraftFeedback] = useState(question.feedback);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
-    function startEdit(){
+    function startEdit() {
         setDraftCorrect(question.is_correct);
         setDraftFeedback(question.feedback);
+        setSaveError(null);
         setEditing(true);
     }
 
-    function cancelEdit(){
+    function cancelEdit() {
         setEditing(false);
+        setSaveError(null);
     }
 
-    function saveEdit(){
-        onSave(question.question_result_id, {
-            is_correct: draftCorrect,
-            feedback: draftFeedback,
-        });
-        setEditing(false);
+    async function saveEdit() {
+        setSaving(true);
+        setSaveError(null);
+        try {
+            await onSave(question.question_result_id, {
+                is_correct: draftCorrect,
+                feedback: draftFeedback,
+            });
+            setEditing(false);
+        } catch (err) {
+            setSaveError("Couldn't save this change. Try again.");
+        } finally {
+            setSaving(false);
+        }
     }
 
-    return(
-
+    return (
         <motion.div
             className={`q-card ${question.is_correct ? "correct" : "incorrect"}`}
-            initial={{opacity:0,y:16}}
-            whileInView={{opacity:1,y:0}}
-            viewport={{once:true}}
-            transition={{duration:.5}}
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
         >
-
             <div className="q-top">
-
                 <div className="q-number">
                     <span>Q{question.question_number}</span>
                     <span className={`verdict-badge ${question.is_correct ? "correct" : "incorrect"}`}>
                         {question.is_correct ? "Correct" : "Incorrect"}
                     </span>
-                    {question.edited && (
-                        <span className="edited-tag">Edited</span>
-                    )}
+                    {question.edited && <span className="edited-tag">Edited</span>}
                 </div>
 
                 {!editing && (
@@ -454,7 +530,6 @@ function QuestionCard({ question, onSave }){
                         Edit feedback
                     </button>
                 )}
-
             </div>
 
             <p className="q-text">{question.question_text}</p>
@@ -464,30 +539,29 @@ function QuestionCard({ question, onSave }){
                 <p>{question.student_answer}</p>
             </div>
 
-            {!editing && (
-                <p className="feedback-text">{question.feedback}</p>
-            )}
+            {!editing && <p className="feedback-text">{question.feedback}</p>}
 
             <AnimatePresence>
                 {editing && (
                     <motion.div
                         className="edit-panel"
-                        initial={{opacity:0,height:0}}
-                        animate={{opacity:1,height:"auto"}}
-                        exit={{opacity:0,height:0}}
-                        transition={{duration:.25}}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
                     >
-
                         <div className="verdict-toggle">
                             <button
+                                type="button"
                                 className={draftCorrect ? "active correct" : ""}
-                                onClick={()=>setDraftCorrect(true)}
+                                onClick={() => setDraftCorrect(true)}
                             >
                                 Correct
                             </button>
                             <button
+                                type="button"
                                 className={!draftCorrect ? "active incorrect" : ""}
-                                onClick={()=>setDraftCorrect(false)}
+                                onClick={() => setDraftCorrect(false)}
                             >
                                 Incorrect
                             </button>
@@ -495,129 +569,177 @@ function QuestionCard({ question, onSave }){
 
                         <textarea
                             value={draftFeedback}
-                            onChange={e=>setDraftFeedback(e.target.value)}
+                            onChange={(e) => setDraftFeedback(e.target.value)}
                             placeholder="Write feedback for this question..."
                         />
 
-                        <div className="edit-actions">
-                            <button className="cancel-btn" onClick={cancelEdit}>Cancel</button>
-                            <button className="save-btn" onClick={saveEdit}>Save</button>
-                        </div>
+                        {saveError && <span className="edit-error">{saveError}</span>}
 
+                        <div className="edit-actions">
+                            <button className="cancel-btn" onClick={cancelEdit} disabled={saving}>
+                                Cancel
+                            </button>
+                            <button className="save-btn" onClick={saveEdit} disabled={saving}>
+                                {saving ? "Saving..." : "Save"}
+                            </button>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
         </motion.div>
-
     );
-
 }
 
-export default function ResultsPage({
-    submission = SAMPLE_SUBMISSION,
-    questions: initialQuestions = SAMPLE_QUESTIONS,
-    onSaveFeedback, // async (question_result_id, { is_correct, feedback }) => void — wire this to your API
-}){
+export default function ResultsPage() {
+    const { submissionId } = useParams();
 
-    const [questions, setQuestions] = useState(initialQuestions);
+    const [submission, setSubmission] = useState(null);
+const [questions, setQuestions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchResults = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await axios.get(`${API_URL}/results/${submissionId}`);
+            console.log("API Response:", res.data);
+            setSubmission(res.data.submission);
+            
+            setQuestions(res.data.questions);
+        } catch (err) {
+            if (err.response?.status === 404) {
+                setError("We couldn't find this submission.");
+            } else {
+                setError("Something went wrong loading these results.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, [submissionId]);
+
+    useEffect(() => {
+        fetchResults();
+    }, [fetchResults]);
+
+    async function handleSave(question_result_id, updates) {
+        const previous = questions;
+
+        // optimistic UI update
+        setQuestions((prev) =>
+            prev.map((q) =>
+                q.question_result_id === question_result_id ? { ...q, ...updates, edited: true } : q
+            )
+        );
+
+        try {
+            await axios.patch(`${API_URL}/question-results/${question_result_id}`, updates);
+        } catch (err) {
+            // roll back on failure
+            setQuestions(previous);
+            throw err;
+        }
+    }
+
+    if (loading) {
+        return (
+            <>
+                <style>{styles}</style>
+                <div className="status-page">
+                    <div className="status-card">
+                        <div className="status-spinner" />
+                        <h2>Loading results</h2>
+                        <p>Fetching this submission's graded questions...</p>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    if (error) {
+        return (
+            <>
+                <style>{styles}</style>
+                <div className="status-page">
+                    <div className="status-card">
+                        <h2>Couldn't load results</h2>
+                        <p>{error}</p>
+                        <button className="retry-btn" onClick={fetchResults}>
+                            Try again
+                        </button>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     const total = questions.length;
-    const correctCount = questions.filter(q => q.is_correct).length;
+    const correctCount = questions.filter((q) => q.is_correct).length;
     const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
 
     const radius = 40;
     const circumference = 2 * Math.PI * radius;
     const dash = (pct / 100) * circumference;
 
-    async function handleSave(question_result_id, updates){
-        // optimistic UI update
-        setQuestions(prev => prev.map(q =>
-            q.question_result_id === question_result_id
-                ? { ...q, ...updates, edited: true }
-                : q
-        ));
-
-        if(onSaveFeedback){
-            try{
-                await onSaveFeedback(question_result_id, updates);
-            }catch(err){
-                console.error("Failed to save feedback:", err);
-                // optional: roll back / show an error toast here
-            }
-        }
-    }
-
-    return(
-
+    return (
         <>
+            <style>{styles}</style>
 
-        <style>{styles}</style>
-
-        <div className="results-page">
-
-            <div className="rp-container">
-
-                <div className="rp-eyebrow">
-                    <span className="rp-dot"/>
-                    AI-Reviewed Results
-                </div>
-
-                <div className="rp-meta">
-                    <h1>{submission.student_name}</h1>
-                    <p>{submission.filename}</p>
-                    <span className="subject-pill">{submission.subject}</span>
-                </div>
-
-                <motion.div
-                    className="summary-card"
-                    initial={{opacity:0,y:16}}
-                    animate={{opacity:1,y:0}}
-                    transition={{duration:.5}}
-                >
-
-                    <div className="summary-ring">
-                        <svg width="96" height="96" viewBox="0 0 96 96">
-                            <circle className="summary-ring-bg" cx="48" cy="48" r={radius}/>
-                            <circle
-                                className="summary-ring-fill"
-                                cx="48" cy="48" r={radius}
-                                stroke="url(#ringGradient)"
-                                strokeDasharray={`${dash} ${circumference}`}
-                            />
-                            <defs>
-                                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#FFCE00"/>
-                                    <stop offset="100%" stopColor="#DD0000"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <div className="summary-ring-text">{pct}%</div>
+            <div className="results-page">
+                <div className="rp-container">
+                    <div className="rp-eyebrow">
+                        <span className="rp-dot" />
+                        AI-Reviewed Results
                     </div>
 
-                    <div className="summary-body">
-                        <h2>{correctCount} out of {total} correct</h2>
-                        <p>Reviewed by AI — edit any question below if needed.</p>
+                    <div className="rp-meta">
+                        <h1>{submission.student_name || "Unknown student"}</h1>
+                        <p>{submission.filename}</p>
+                        <span className="subject-pill">{submission.subject}</span>
                     </div>
 
-                </motion.div>
+                    <motion.div
+                        className="summary-card"
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <div className="summary-ring">
+                            <svg width="96" height="96" viewBox="0 0 96 96">
+                                <circle className="summary-ring-bg" cx="48" cy="48" r={radius} />
+                                <circle
+                                    className="summary-ring-fill"
+                                    cx="48"
+                                    cy="48"
+                                    r={radius}
+                                    stroke="url(#ringGradient)"
+                                    strokeDasharray={`${dash} ${circumference}`}
+                                />
+                                <defs>
+                                    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFCE00" />
+                                        <stop offset="100%" stopColor="#DD0000" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div className="summary-ring-text">{pct}%</div>
+                        </div>
 
-                <div className="q-list">
-                    {questions.map(q => (
-                        <QuestionCard
-                            key={q.question_result_id}
-                            question={q}
-                            onSave={handleSave}
-                        />
-                    ))}
+                        <div className="summary-body">
+                            <h2>
+                                {correctCount} out of {total} correct
+                            </h2>
+                            <p>Reviewed by AI — edit any question below if needed.</p>
+                        </div>
+                    </motion.div>
+
+                    <div className="q-list">
+                        {questions.map((q) => (
+                            <QuestionCard key={q.question_result_id} question={q} onSave={handleSave} />
+                        ))}
+                    </div>
                 </div>
-
             </div>
-
-        </div>
-
         </>
-
     );
-
 }

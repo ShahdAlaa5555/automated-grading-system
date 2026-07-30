@@ -76,19 +76,24 @@ def _load_pdf(data: bytes, settings: Settings) -> list[LoadedPage]:
 
     try:
         for page in document:
-            # The Pearson exemplar PDF stores the question and handwritten answer as
-            # two separate embedded images. Detect and crop those first.
-            separated = _extract_question_and_answer_regions(page, matrix)
-            if separated is not None:
-                question_image, answer_image = separated
-                pages.append(
-                    LoadedPage(
-                        image=answer_image,
-                        question_image=question_image,
-                        printed_text="",
-                        separation_mode="embedded_regions",
+            separated_blocks = _extract_question_and_answer_regions(
+                page,
+                matrix,
+            )
+
+            if separated_blocks:
+                # One physical PDF page may contain several question-answer blocks.
+                # Each block becomes one logical page for the German OCR pipeline.
+                for question_image, answer_image in separated_blocks:
+                    pages.append(
+                        LoadedPage(
+                            image=answer_image,
+                            question_image=question_image,
+                            printed_text="",
+                            separation_mode="embedded_regions",
+                        )
                     )
-                )
+
                 continue
 
             # Fallback for ordinary text PDFs: read selectable printed text and mask
@@ -121,61 +126,148 @@ def _load_pdf(data: bytes, settings: Settings) -> list[LoadedPage]:
 def _extract_question_and_answer_regions(
     page: fitz.Page,
     matrix: fitz.Matrix,
-) -> tuple[Image.Image, Image.Image] | None:
-    """Split layouts where question and answer are separate embedded images.
+) -> list[tuple[Image.Image, Image.Image]]:
+    """
+    Extract multiple question-answer pairs from one physical PDF page.
 
-    This matches the uploaded Pearson exemplar: a decorative banner at the top,
-    followed by one large question image and one or more large answer images below.
-    The same TrOCR model can later OCR both regions; the split preserves their roles.
+    This supports Pearson-style pages where the printed question and
+    handwritten answer are stored as separate embedded images.
+
+    Example detected order:
+
+        question 1
+        answer 1
+        question 2
+        answer 2
+
+    The returned list contains:
+
+        [
+            (question_1_image, answer_1_image),
+            (question_2_image, answer_2_image),
+        ]
     """
 
     page_width = page.rect.width
     page_height = page.rect.height
+
     candidate_rects: list[fitz.Rect] = []
 
     for image_info in page.get_images(full=True):
         xref = image_info[0]
-        for rect in page.get_image_rects(xref):
-            rect = rect & page.rect
+
+        for raw_rect in page.get_image_rects(xref):
+            rect = raw_rect & page.rect
+
             if rect.is_empty:
                 continue
 
             width_ratio = rect.width / page_width
             height_ratio = rect.height / page_height
 
-            # Ignore logos, icons, tiny decorations, and the full-width top banner.
+            # Ignore logos, icons, and very small decorations.
             if width_ratio < 0.45 or height_ratio < 0.06:
                 continue
-            if rect.y0 < page_height * 0.08:
-                continue
-            if rect.y1 > page_height * 0.96:
+
+            # Ignore page footer images.
+            # if rect.y1 > page_height * 0.98:
+            #     continue
+
+            # Ignore wide, shallow decorative Pearson banners wherever
+            # they appear on the combined page.
+            is_decorative_banner = (
+                width_ratio >= 0.90
+                and height_ratio <= 0.13
+            )
+
+            if is_decorative_banner:
                 continue
 
-            if not any(_rects_almost_equal(rect, existing) for existing in candidate_rects):
-                candidate_rects.append(rect)
+            # The same image xref may appear more than once in the list.
+            # Do not add duplicate rectangles.
+            already_added = any(
+                _rects_almost_equal(rect, existing)
+                for existing in candidate_rects
+            )
 
-    candidate_rects.sort(key=lambda rect: (rect.y0, rect.x0))
+            if already_added:
+                continue
+
+            candidate_rects.append(fitz.Rect(rect))
+
+    candidate_rects.sort(
+        key=lambda region: (
+            region.y0,
+            region.x0,
+        )
+    )
+
     if len(candidate_rects) < 2:
-        return None
+        return []
 
-    question_rect = candidate_rects[0]
-    answer_rects = [
-        rect
-        for rect in candidate_rects[1:]
-        if rect.y0 >= question_rect.y1 - page_height * 0.01
-    ]
-    if not answer_rects:
-        return None
+    question_indexes: list[int] = []
 
-    # Combine all answer image rectangles below the question into one page clip.
-    answer_union = fitz.Rect(answer_rects[0])
-    for rect in answer_rects[1:]:
-        answer_union.include_rect(rect)
+    for index, rect in enumerate(candidate_rects):
+        aspect_ratio = rect.width / max(rect.height, 1)
+        height_ratio = rect.height / page_height
 
-    question_image = _render_clip(page, matrix, question_rect)
-    answer_image = _render_clip(page, matrix, answer_union)
-    return question_image, answer_image
+        # Pearson question boxes are wide and relatively short.
+        # The handwritten response regions are normally taller.
+        looks_like_question = (
+            aspect_ratio >= 2.60
+            and height_ratio <= 0.30
+        )
 
+        if looks_like_question:
+            question_indexes.append(index)
+
+    if not question_indexes:
+        return []
+
+    result: list[tuple[Image.Image, Image.Image]] = []
+
+    for position, question_index in enumerate(question_indexes):
+        question_rect = candidate_rects[question_index]
+
+        if position + 1 < len(question_indexes):
+            next_question_index = question_indexes[position + 1]
+        else:
+            next_question_index = len(candidate_rects)
+
+        # Everything between this question and the next question belongs
+        # to this question's handwritten answer.
+        answer_rects = candidate_rects[
+            question_index + 1 : next_question_index
+        ]
+
+        if not answer_rects:
+            continue
+
+        answer_union = fitz.Rect(answer_rects[0])
+
+        for answer_rect in answer_rects[1:]:
+            answer_union.include_rect(answer_rect)
+
+        question_image = _render_clip(
+            page,
+            matrix,
+            question_rect,
+        )
+
+        answer_image = _render_clip(
+            page,
+            matrix,
+            answer_union,
+        )
+
+        result.append(
+            (
+                question_image,
+                answer_image,
+            )
+        )
+
+    return result
 
 def _rects_almost_equal(first: fitz.Rect, second: fitz.Rect, tolerance: float = 1.0) -> bool:
     return all(

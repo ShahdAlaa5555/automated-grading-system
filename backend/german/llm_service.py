@@ -84,6 +84,12 @@ Regeln:
 10. Schreibe student_answer und corrected_transcription auf Deutsch.
 11. Schreibe language_feedback, content_feedback und page_feedback auf Englisch.
 12. Antworte ausschließlich entsprechend dem vorgegebenen JSON-Schema.
+13. assessment, language_feedback und content_feedback müssen einander entsprechen.
+14. Verwende assessment="likely_correct", wenn die Antwort die Aufgabenstellung erfüllt und verständlich ist. Kleine Grammatik- oder Rechtschreibfehler machen die gesamte Antwort nicht automatisch falsch.
+15. Verwende assessment="likely_incorrect", wenn wichtige geforderte Punkte fehlen, die Antwort nicht zur Aufgabe passt oder die Bedeutung deutlich falsch ist.
+16. Verwende assessment="unclear" oder assessment="cannot_verify" nur, wenn der OCR-Text unleserlich, unvollständig oder nicht ausreichend zur Bewertung ist.
+17. Wenn du in feedback schreibst, dass die Antwort correct, accurate, appropriate, well-written oder vollständig ist, muss assessment="likely_correct" sein.
+18. Wenn assessment nicht "likely_correct" ist, darf das Feedback die Antwort nicht als correct bezeichnen.
 """
 
 
@@ -250,6 +256,25 @@ Wichtig:
             if isinstance(item, dict)
         ]
 
+        # One OCR input now represents exactly one question-answer block.
+        # If the small LLM incorrectly creates several items from bullet points,
+        # retain the item containing the most substantial student answer.
+        if len(valid_items) > 1:
+            valid_items.sort(
+                key=lambda item: len(
+                    str(
+                        item.get(
+                            "student_answer",
+                            "",
+                        )
+                    ).strip()
+                ),
+                reverse=True,
+            )
+
+            valid_items = valid_items[:1]
+            parsed["items"] = valid_items
+
         if len(valid_items) == 1:
             valid_items[0]["question_or_context"] = question
 
@@ -270,6 +295,11 @@ Wichtig:
         if looks_written:
             for item in valid_items:
                 item["answer_type"] = "written"
+
+        for item in valid_items:
+            LLMService._repair_assessment_consistency(item)
+
+        parsed["items"] = valid_items
 
         return parsed
 
@@ -292,3 +322,97 @@ Wichtig:
             return value if isinstance(value, dict) else None
         except json.JSONDecodeError:
             return None
+
+    @staticmethod
+    def _repair_assessment_consistency(
+        item: dict[str, Any],
+    ) -> None:
+        """
+        Repair obvious contradictions between the generated assessment
+        and the generated feedback.
+
+        This is a safety net for small local models.
+        """
+
+        valid_assessments = {
+            "likely_correct",
+            "likely_incorrect",
+            "unclear",
+            "cannot_verify",
+        }
+
+        assessment = str(
+            item.get("assessment", "")
+        ).strip()
+
+        if assessment not in valid_assessments:
+            assessment = "unclear"
+
+        language_feedback = str(
+            item.get("language_feedback", "")
+        ).strip()
+
+        content_feedback = str(
+            item.get("content_feedback", "")
+        ).strip()
+
+        combined_feedback = (
+            f"{language_feedback} {content_feedback}"
+        ).lower()
+
+        positive_phrases = (
+            "answer is correct",
+            "response is correct",
+            "correct and well-written",
+            "all the required points",
+            "covers all required points",
+            "fulfills the task",
+            "meets the task requirements",
+            "accurate and appropriate",
+            "fully addresses the task",
+        )
+
+        incorrect_phrases = (
+            "answer is incorrect",
+            "response is incorrect",
+            "does not address the task",
+            "does not answer the question",
+            "important required points are missing",
+            "fails to include",
+            "meaning is incorrect",
+        )
+
+        unverifiable_phrases = (
+            "cannot be verified",
+            "not enough information",
+            "insufficient information",
+            "ocr is unreadable",
+            "answer is unreadable",
+            "no answer was detected",
+        )
+
+        says_positive = any(
+            phrase in combined_feedback
+            for phrase in positive_phrases
+        )
+
+        says_incorrect = any(
+            phrase in combined_feedback
+            for phrase in incorrect_phrases
+        )
+
+        says_unverifiable = any(
+            phrase in combined_feedback
+            for phrase in unverifiable_phrases
+        )
+
+        if says_unverifiable:
+            assessment = "cannot_verify"
+
+        elif says_positive and not says_incorrect:
+            assessment = "likely_correct"
+
+        elif says_incorrect and not says_positive:
+            assessment = "likely_incorrect"
+
+        item["assessment"] = assessment

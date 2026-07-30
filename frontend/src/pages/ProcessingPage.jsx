@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const statusInfo = {
@@ -233,6 +233,7 @@ font-size:28px;
 
 export default function ProcessingPage() {
 const { submissionId } = useParams();
+const navigate = useNavigate();
 
 const [status, setStatus] = useState("Uploaded");
 const [progress, setProgress] = useState(0);
@@ -280,7 +281,7 @@ const [factIndex, setFactIndex] = useState(0);
 
   };
 
-}, [submissionId]);
+}, [submissionId, navigate]);
 
   return(
 
