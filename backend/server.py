@@ -1,18 +1,18 @@
 from cv2 import data
 import torch
 
-from fastapi import FastAPI, UploadFile, File,HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 #Menna: Evidently, I need this to hardcode a teacher to test the login.
-from pydantic import BaseModel 
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
+import traceback
 
 from cleaner import run_pipeline
 from llm_parser import parse_exam
 from reference_generator import generate_answers
 from database import get_connection
-
 #Menna: just for login testing
 class LoginRequest(BaseModel):
     email: str
@@ -30,14 +30,12 @@ def _extract_teacher_name(teacher_record):
         value = teacher_record.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
-
     first_name = teacher_record.get("first_name")
     last_name = teacher_record.get("last_name")
     if isinstance(first_name, str) and first_name.strip() and isinstance(last_name, str) and last_name.strip():
         return f"{first_name.strip()} {last_name.strip()}"
 
     return "Teacher"
-
 
 def _extract_teacher_subjects(teacher_record, fallback_profile):
     for key in ("subjects", "subjects_taught", "teaching_subjects", "subject_names"):
@@ -50,7 +48,6 @@ def _extract_teacher_subjects(teacher_record, fallback_profile):
             subjects = [item.strip() for item in value.split(",") if item.strip()]
             if subjects:
                 return subjects
-
     if fallback_profile and fallback_profile.get("subjects"):
         return fallback_profile["subjects"]
 
@@ -70,12 +67,10 @@ def get_teacher_courses(cursor, teacher_id):
     )
 
     course_rows = cursor.fetchall()
-
     return [
         row["course_name"]
         for row in course_rows
     ]
-
 # ==========================================
 # Allow React to communicate with FastAPI
 # ==========================================
@@ -91,8 +86,7 @@ app.add_middleware(
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-#by shahd 
+#by shahd
 def update_progress(submission_id, status, progress):
 
     conn = get_connection()
@@ -121,7 +115,6 @@ def update_progress(submission_id, status, progress):
 
 @app.get("/submission/{submission_id}")
 def get_submission(submission_id: int):
-
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -144,7 +137,6 @@ def get_submission(submission_id: int):
 
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
-
     return submission
 @app.get("/")
 def home():
@@ -152,7 +144,11 @@ def home():
 
 
 @app.post("/{subject}/upload")
-async def upload_exam(subject: str,file: UploadFile = File(...)):
+async def upload_exam(
+    subject: str,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
 
     # ==============================
     # Save uploaded file
@@ -165,7 +161,6 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
   # ==============================
     # Save submission in MySQL
     # ==============================
@@ -178,7 +173,6 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     (subject, filename, file_path, status, progress)
     VALUES (%s, %s, %s, %s, %s)
     """
-
     cursor.execute(
         query,
         (
@@ -189,8 +183,8 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             0
         )
     )
-    
-    submission_id = cursor.lastrowid 
+
+    submission_id = cursor.lastrowid
     conn.commit()
 
     cursor.close()
@@ -199,25 +193,20 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     normalized_subject = subject.strip().lower()
 
     if normalized_subject == "german":
-        update_progress(
+        # Only German processing is moved to a background task.
+        # This lets the frontend navigate immediately to ProcessingPage
+        # without changing the existing workflows of the other subjects.
+        background_tasks.add_task(
+            process_german_submission,
             submission_id,
-            "Processing",
-            20,
+            file_path,
         )
 
-        exam = analyze_german_exam(file_path)
-
-        update_progress(
-            submission_id,
-            "OCR Complete",
-            60,
-        )
-
-        update_progress(
-            submission_id,
-            "Grading",
-            80,
-        )
+        return {
+            "submission_id": submission_id,
+            "status": "Uploaded",
+            "progress": 0,
+        }
 
     else:
         update_progress(
@@ -233,7 +222,6 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
             "OCR Complete",
             40,
         )
-
         update_progress(
             submission_id,
             "Grading",
@@ -256,13 +244,11 @@ async def upload_exam(subject: str,file: UploadFile = File(...)):
     "submission_id": submission_id,
     "exam": exam
 }
-
 def save_results(submission_id, exam):
     conn = get_connection()
     cursor = conn.cursor()
 
     for q in exam["questions"]:
-
         cursor.execute(
             """
             INSERT INTO question_results
@@ -285,10 +271,56 @@ def save_results(submission_id, exam):
                 q["feedback"]
             )
         )
-
     conn.commit()
     cursor.close()
     conn.close()
+
+
+def process_german_submission(submission_id: int, file_path: str):
+    """
+    Process only German submissions after the upload response is returned.
+
+    Keeping this helper German-specific avoids changing the existing
+    processing behavior of Chemistry, Math, and Biology.
+    """
+
+    try:
+        exam = analyze_german_exam(
+            file_path,
+            progress_callback=lambda status, progress: update_progress(
+                submission_id,
+                status,
+                progress,
+            ),
+        )
+
+        save_results(submission_id, exam)
+
+        update_progress(
+            submission_id,
+            "Completed",
+            95,
+        )
+
+        update_progress(
+            submission_id,
+            "Released",
+            100,
+        )
+
+        print(exam)
+
+    except Exception:
+        traceback.print_exc()
+
+        try:
+            update_progress(
+                submission_id,
+                "Failed",
+                100,
+            )
+        except Exception:
+            traceback.print_exc()
 
 
 
@@ -312,7 +344,6 @@ def login(data: LoginRequest):
             """,
             (email,)
         )
-
         teacher = cursor.fetchone()
 
         if teacher is None or teacher["password"] != data.password:
@@ -325,7 +356,6 @@ def login(data: LoginRequest):
             cursor,
             teacher["teacher_id"]
         )
-
         return {
             "success": True,
             "message": "Login successful",
