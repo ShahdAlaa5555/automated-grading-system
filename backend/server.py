@@ -8,11 +8,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import traceback
-
-from cleaner import run_pipeline
+#Menna Shaaban: I will change this to accomodate adding EasyOCR as an option for grading. Worry not :)
+from cleaner import run_pipeline as run_pipeline_paddle
+from cleaner_easyocr import run_pipeline as run_pipeline_easyocr
+#Menna Shaaban: Change ends above ^
 from llm_parser import parse_exam
 from reference_generator import generate_answers
 from database import get_connection
+#Menna is adding these for debugging.
+import inspect
+print("\n===== USING PARSER FROM =====")
+print(inspect.getsourcefile(parse_exam))
+print("=============================\n")
 #Menna: just for login testing
 class LoginRequest(BaseModel):
     email: str
@@ -214,9 +221,12 @@ async def upload_exam(
             "Processing",
             20,
         )
-
-        lines = run_pipeline(file_path)
-
+        #Menna Shaaban: Once more, I will change this to accomodate adding EasyOCR as an option for grading. Worry not :)
+        if normalized_subject == "math":
+            lines = run_pipeline_easyocr(file_path)
+        else:
+            lines = run_pipeline_paddle(file_path)
+        #Menna Shaaban: Change ends above ^
         update_progress(
             submission_id,
             "OCR Complete",
@@ -227,19 +237,30 @@ async def upload_exam(
             "Grading",
             80,
         )
-
+        #Menna is debugging.
         exam = parse_exam(lines, normalized_subject)
+        # print("\n========== PARSED EXAM ==========")
+        # print(type(exam))
+        # print(exam)
+        # if isinstance(exam, dict):
+        #     print("Keys:", exam.keys())
+        # print("=================================\n") 
+        # #Menna Shaaban: I will change this to accomodate the exam format being uploaded. 
         exam = generate_answers(
             exam,
             normalized_subject,
         )
+        exam["sections"] = generate_answers(
+        exam["sections"],
+        normalized_subject,
+        ) #Feel free to revert back to old version, but it may affect Maths. - Menna Shaaban
         save_results(submission_id, exam)
-    update_progress(
+        update_progress(
         submission_id,
         "Released",
         100,
     )
-    print(exam)
+        print(exam)
     return {
     "submission_id": submission_id,
     "exam": exam
@@ -247,9 +268,10 @@ async def upload_exam(
 def save_results(submission_id, exam):
     conn = get_connection()
     cursor = conn.cursor()
-
-    for q in exam["questions"]:
-        cursor.execute(
+#Menna is debugging so I added this.
+    for section in exam["sections"]:
+        for q in exam["questions"]:
+            cursor.execute(
             """
             INSERT INTO question_results
             (

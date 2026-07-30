@@ -4,6 +4,9 @@ import re
 from ollama import chat
 
 from config import MODEL
+#Menna moved these imports here because code was unreachable.
+import json
+from json import JSONDecoder
 
 
 # ==========================================================
@@ -136,8 +139,8 @@ def clean_output(text):
 # ==========================================================
 # EXTRACT JSON
 # ==========================================================
-
-def extract_json(text):
+#Menna Shaaban: I will comment the old implementation of this method to fix an exception I am having. I will keep it, but note that the current version is changed to avoid the exception on fetching the curly brackets. Worry not :)
+# def extract_json(text):
 
     print("\n================ RAW MODEL OUTPUT ================\n")
     print(text)
@@ -175,7 +178,53 @@ def extract_json(text):
 
     raise Exception("Could not extract valid JSON.")
 
+#Menna: I will replace this for the sake of attempting to upload. I will keep it commented in case the change is problematic.
+# def extract_json(text: str):
+    """
+    Extract the first valid JSON object from a model response.
+    """
 
+    decoder = JSONDecoder()
+
+    start = text.find("{")
+
+    while start != -1:
+
+        try:
+            obj, end = decoder.raw_decode(text[start:])
+            return obj
+
+        except json.JSONDecodeError:
+
+            start = text.find("{", start + 1)
+
+    raise Exception("Could not extract valid JSON.")
+
+
+
+def extract_json(text: str):
+
+    decoder = JSONDecoder()
+
+    start = text.find("{")
+
+    while start != -1:
+
+        try:
+            obj, end = decoder.raw_decode(text[start:])
+
+            if (
+                isinstance(obj, dict)
+                and "sections" in obj
+            ):
+                return obj
+
+        except json.JSONDecodeError:
+            pass
+
+        start = text.find("{", start + 1)
+
+    raise Exception("Could not find exam JSON.")
 # ==========================================================
 # CALL OLLAMA
 # ==========================================================
@@ -224,13 +273,17 @@ def parse_exam(lines, subject):
     raw = call_llm(
         prompt
     )
-
+    #Menna: debugging ;') 
+    print("\n================ RAW STRING ================\n")
+    print(raw)
+    print("\n===========================================\n")
 
     exam = extract_json(
         raw
     )
-    if "sections" in exam:
-       exam = exam["sections"]
+    #Menna Shaaban: I will remove this below if-condition to accomodate receiving the whole exam. Feel free to return it if problematic.
+    # if "sections" in exam:
+    #    exam = exam["sections"]
 
 
     return exam
