@@ -202,7 +202,46 @@ def clean_output(text):
 
 
 
+# def extract_json(text: str):
+
+#     decoder = JSONDecoder()
+
+#     start = text.find("{")
+
+#     while start != -1:
+
+#         try:
+#             obj, end = decoder.raw_decode(text[start:])
+#         #Menna: Changed this to accomodate both formats.
+#             # if (
+#             #     isinstance(obj, dict)
+#             #     and "sections" in obj
+#             # ):
+#             #     return obj
+#             if not isinstance(obj, dict):
+#                 continue
+
+# # Old format
+#             if "sections" in obj:
+#                 return obj
+
+# # New format
+#             if "exam" in obj and isinstance(obj["exam"], dict):
+#                 if "sections" in obj["exam"]:
+#                     return obj["exam"]
+
+#         except json.JSONDecodeError:
+#             pass
+
+#         start = text.find("{", start + 1)
+#     print(repr(text))
+#     raise Exception("Could not find exam JSON.")
+#Added by Menna to temporarily test
 def extract_json(text: str):
+
+    print("========== extract_json received ==========")
+    print(repr(text))
+    print("==========================================")
 
     decoder = JSONDecoder()
 
@@ -213,14 +252,24 @@ def extract_json(text: str):
         try:
             obj, end = decoder.raw_decode(text[start:])
 
-            if (
-                isinstance(obj, dict)
-                and "sections" in obj
-            ):
-                return obj
+            print("Parsed object keys:", obj.keys())
 
-        except json.JSONDecodeError:
-            pass
+            if isinstance(obj, dict):
+
+                if "sections" in obj:
+                    print("Matched root sections")
+                    return obj
+
+                if (
+                    "exam" in obj
+                    and isinstance(obj["exam"], dict)
+                    and "sections" in obj["exam"]
+                ):
+                    print("Matched nested exam")
+                    return obj["exam"]
+
+        except json.JSONDecodeError as e:
+            print("JSON decode failed:", e)
 
         start = text.find("{", start + 1)
 
@@ -273,11 +322,17 @@ def parse_exam(lines, subject):
     raw = call_llm(
         prompt
     )
+    #Menna debugging 
+    with open("llm_output.txt", "w", encoding="utf-8") as f:
+        f.write(raw)
     #Menna: debugging ;') 
     print("\n================ RAW STRING ================\n")
     print(raw)
     print("\n===========================================\n")
-
+    print("\n========== RAW RESPONSE ==========")
+    print(raw)      # or whatever variable you're passing to extract_json
+    print(type(raw))
+    print("=================================\n")
     exam = extract_json(
         raw
     )

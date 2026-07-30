@@ -1,0 +1,193 @@
+{
+    "exam": {
+        "subject": "PYP Mathematics",
+        "title": "Sample Assignment (Phase 3/4)",
+        "date": ""
+    },
+
+    "student": {
+        "name": "",
+        "class": ""
+    },
+
+    "sections": [
+        {
+            "number": 1,
+            "title": "Data Handling (4 marks)",
+            "points": "4",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(a) Draw a labelled bar graph:",
+                    "student_answer": ""
+                },
+                {
+                    "id": "b",
+                    "points": "",
+                    "question": "(b) Which method is most common?",
+                    "student_answer": "Bus"
+                },
+                {
+                    "id": "c",
+                    "points": "",
+                    "question": "(c) How many more students take the bus than ride bicycles?",
+                    "student_answer": "8-6=2"
+                },
+                {
+                    "id": "d",
+                    "points": "",
+                    "question": "(d) Write one conclusion.",
+                    "student_answer": "The most common mode of transportation is the Bus."
+                }
+            ]
+        },
+        {
+            "number": 2,
+            "title": "Probability (3)",
+            "points": "3",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(a) What fraction are blue?",
+                    "student_answer": ""
+                },
+                {
+                    "id": "b",
+                    "points": "",
+                    "question": "(b) Which color is most likely?",
+                    "student_answer": "Red"
+                },
+                {
+                    "id": "c",
+                    "points": "",
+                    "question": "(c) Explain why drawing green is less likely than red.",
+                    "student_answer": "Green has 2 out of 10, while red has 5 out of 10."
+                }
+            ]
+        },
+        {
+            "number": 3,
+            "title": "Measurement (4)",
+            "points": "4",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(a) Find the perimeter and area. State the units and explain what each measurement means:",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 4,
+            "title": "Measurement (3)",
+            "points": "3",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) Bottle holds 1.5 L. You pour out 350 mL. How much water remains? Show your conversion.",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 5,
+            "title": "Shape (3)",
+            "points": "3",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) Draw a trapezoid. Mark one of its parallel sides and label its properties.",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 6,
+            "title": "Shape (3)",
+            "points": "3",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) Draw the net of a cube and explain why it folds into a cube:",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 7,
+            "title": "Patterns (4)",
+            "points": "4",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(a) Write the next four terms.",
+                    "student_answer": ""
+                },
+                {
+                    "id": "b",
+                    "points": "",
+                    "question": "(b) Write a rule.",
+                    "student_answer": ""
+                },
+                {
+                    "id": "c",
+                    "points": "",
+                    "question": "(c) Find the 25th term.",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 8,
+            "title": "Number (4)",
+            "points": "4",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) Order these from smallest to largest: 3/5, 0.58, 62%.",
+                    "student_answer": ""
+                },
+                {
+                    "id": "c",
+                    "points": "",
+                    "question": "(d) Convert each to the same form to justify your answer:",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 9,
+            "title": "Fractions (3)",
+            "points": "3",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) How much was eaten altogether?",
+                    "student_answer": ""
+                }
+            ]
+        },
+        {
+            "number": 10,
+            "title": "Reasoning (4)",
+            "points": "4",
+            "subquestions": [
+                {
+                    "id": "a",
+                    "points": "",
+                    "question": "(b) Create your own word problem involving decimals or fractions. Solve it and explain each step.",
+                    "student_answer": ""
+                }
+            ]
+        }
+    ]
+}

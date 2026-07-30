@@ -245,11 +245,11 @@ async def upload_exam(
         # if isinstance(exam, dict):
         #     print("Keys:", exam.keys())
         # print("=================================\n") 
-        # #Menna Shaaban: I will change this to accomodate the exam format being uploaded. 
-        exam = generate_answers(
-            exam,
-            normalized_subject,
-        )
+        # #Menna Shaaban: I will change this to accomodate the exam format being uploaded, since it is expecting questions not an entire dictionary. 
+        # exam = generate_answers(
+        #     exam,
+        #     normalized_subject,
+        # )
         exam["sections"] = generate_answers(
         exam["sections"],
         normalized_subject,
@@ -265,38 +265,72 @@ async def upload_exam(
     "submission_id": submission_id,
     "exam": exam
 }
+#Menna: I commented this implementation of save_results and replaced it with a new one due to formatting issues.
+# def save_results(submission_id, exam):
+#     conn = get_connection()
+#     cursor = conn.cursor()
+# #Menna is debugging so she altered this to handle the change in answer generation :)
+#     for section in exam["sections"]:
+#         for q in section["subquestions"]:
+#             cursor.execute(
+#             """
+#             INSERT INTO question_results
+#             (
+#                 submission_id,
+#                 question_number,
+#                 question_text,
+#                 student_answer,
+#                 ai_is_correct,
+#                 ai_feedback
+#             )
+#             VALUES (%s,%s,%s,%s,%s,%s)
+#             """,
+#             (
+#                 submission_id,
+#                 q["number"],
+#                 q["question"],
+#                 q["student_answer"],
+#                 q["is_correct"],
+#                 q["feedback"]
+#             )
+#         )
+#     conn.commit()
+#     cursor.close()
+#     conn.close()
 def save_results(submission_id, exam):
     conn = get_connection()
     cursor = conn.cursor()
-#Menna is debugging so I added this.
+
     for section in exam["sections"]:
-        for q in exam["questions"]:
+        for q in section["subquestions"]:
+            print("Saving:", section["number"], q["id"])
+            print("question_number =", f"{section['number']}{q['id']}")
             cursor.execute(
-            """
-            INSERT INTO question_results
-            (
-                submission_id,
-                question_number,
-                question_text,
-                student_answer,
-                ai_is_correct,
-                ai_feedback
+                """
+                INSERT INTO question_results
+                (
+                    submission_id,
+                    question_number,
+                    question_text,
+                    student_answer,
+                    ai_is_correct,
+                    ai_feedback
+                )
+                VALUES (%s,%s,%s,%s,%s,%s)
+                """,
+                (
+                    submission_id,
+                    f"{section['number']}{q['id']}",
+                    q["question"],
+                    q.get("student_answer", ""),
+                    q.get("is_correct"),
+                    q.get("feedback"),
+                )
             )
-            VALUES (%s,%s,%s,%s,%s,%s)
-            """,
-            (
-                submission_id,
-                q["number"],
-                q["question"],
-                q["student_answer"],
-                q["is_correct"],
-                q["feedback"]
-            )
-        )
+
     conn.commit()
     cursor.close()
     conn.close()
-
 
 def process_german_submission(submission_id: int, file_path: str):
     """

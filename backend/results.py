@@ -30,16 +30,23 @@ router = APIRouter(tags=["results"])
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
-
+#Menna: Altered this to accomodate question_number being 1a, 2b,... which are strings not integers.
+# class QuestionResultOut(BaseModel):
+#     question_result_id: int
+#     question_number: int
+#     question_text: str
+#     student_answer: str | None
+#     is_correct: bool | None
+#     feedback: str | None
+#     edited: bool
 class QuestionResultOut(BaseModel):
     question_result_id: int
-    question_number: int
+    question_number: str
     question_text: str
     student_answer: str | None
     is_correct: bool | None
     feedback: str | None
     edited: bool
-
 
 class SubmissionOut(BaseModel):
     student_name: str | None
