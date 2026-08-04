@@ -142,10 +142,20 @@ export default function DashboardPage() {
                     <p>{subject.description}</p>
                   </div>
 
-                  <button type="button" className="start-correcting-btn">
-                    Start correcting
-                    <FaArrowRight />
-                  </button>
+                  <button
+                    type="button"
+                    className="start-correcting-btn"
+                    onClick={() =>
+                      navigate("/upload", {
+                        state: {
+                         subject: subject.id,
+                        },
+               })
+              }
+           >
+              Start correcting
+              <FaArrowRight />
+              </button>
                 </motion.article>
               );
             })}

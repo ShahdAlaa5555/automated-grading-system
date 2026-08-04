@@ -1,124 +1,254 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+
 body {
     margin: 0;
-    background: #edf3fb;
-    font-family: "Segoe UI", Arial, sans-serif;
+    font-family: "Poppins", sans-serif;
+
+    background:
+      radial-gradient(circle at 8% 12%, rgba(221,0,0,0.07), transparent 30%),
+      radial-gradient(circle at 92% 88%, rgba(255,206,0,0.12), transparent 34%),
+      #fafafa;
 }
 
-/* Center the card */
+
+/* Center upload card */
 .page {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    padding:40px;
+
 }
+
+
 
 /* Upload card */
 .card {
-    width: 460px;
-    background: white;
-    padding: 35px 45px;
-    border-radius: 18px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+
+    width:460px;
+
+    background:rgba(255,255,255,0.95);
+
+    padding:35px 45px;
+
+    border-radius:24px;
+
+    border:1px solid rgba(0,0,0,0.06);
+
+    box-shadow:
+    0 20px 48px rgba(31,31,31,0.07);
+
 }
+
+
 
 /* Logo */
 .logo {
-    width: 120px;
-    display: block;
-    margin: 0 auto 20px;
+
+    width:120px;
+
+    display:block;
+
+    margin:0 auto 20px;
+
 }
+
+
 
 /* Title */
 h1 {
-    text-align: center;
-    color: #0D47A1;
-    font-size: 38px;
-    margin: 0;
-    font-weight: 700;
+
+    text-align:center;
+
+    color:#242424;
+
+    font-size:38px;
+
+    font-weight:700;
+
+    letter-spacing:-0.04em;
+
+    margin:0;
+
 }
+
+
 
 /* Subtitle */
 .subtitle {
-    text-align: center;
-    color: #666;
-    margin: 12px 0 25px;
-    font-size: 17px;
+
+    text-align:center;
+
+    color:#777;
+
+    margin:12px 0 25px;
+
+    font-size:15px;
+
 }
+
+
 
 /* German flag */
 .flag {
-    width: 90px;
-    height: 8px;
-    display: flex;
-    margin: 0 auto 30px;
-    border-radius: 20px;
-    overflow: hidden;
+
+    width:96px;
+
+    height:7px;
+
+    display:flex;
+
+    margin:0 auto 35px;
+
+    border-radius:999px;
+
+    overflow:hidden;
+
 }
+
 
 .black {
-    flex: 1;
-    background: black;
+
+    flex:1;
+
+    background:#111;
+
 }
+
 
 .red {
-    flex: 1;
-    background: #DD0000;
+
+    flex:1;
+
+    background:#dd0000;
+
 }
+
 
 .yellow {
-    flex: 1;
-    background: #FFCE00;
+
+    flex:1;
+
+    background:#ffce00;
+
 }
+
+
 
 /* Labels */
+
 label {
-    display: block;
-    margin-top: 18px;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
+
+    display:block;
+
+    margin-top:20px;
+
+    margin-bottom:8px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#333;
+
 }
+
+
 
 /* Inputs */
+
 select,
 input[type=file] {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #d8d8d8;
-    border-radius: 10px;
-    font-size: 15px;
-    box-sizing: border-box;
+
+    width:100%;
+
+    padding:13px;
+
+    border-radius:14px;
+
+    border:1px solid #ddd;
+
+    background:white;
+
+    font-size:14px;
+
+    box-sizing:border-box;
+
 }
+
+
 
 /* Selected file */
+
 .selected {
-    margin: 18px 0;
-    text-align: center;
-    color: #555;
-    font-size: 15px;
+
+    margin:18px 0;
+
+    text-align:center;
+
+    color:#777;
+
+    font-size:14px;
+
 }
 
-/* Button */
+
+
+/* Upload button */
+
 button {
-    width: 100%;
-    margin-top: 10px;
-    padding: 14px;
-    background: #0D47A1;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 17px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: .3s;
+
+    width:100%;
+
+    margin-top:15px;
+
+    padding:14px;
+
+    border:none;
+
+    border-radius:999px;
+
+    background:#ffce00;
+
+    color:#332900;
+
+    font-size:16px;
+
+    font-weight:650;
+
+    cursor:pointer;
+
+    transition:.25s;
+
 }
+
+
 
 button:hover {
-    background: #1565C0;
+
+    background:#dd0000;
+
+    color:white;
+
+    transform:translateY(-2px);
+
 }
 
+
+
 button:disabled {
-    background: #999;
-    cursor: not-allowed;
+
+    background:#aaa;
+
+    color:white;
+
+    cursor:not-allowed;
+
 }

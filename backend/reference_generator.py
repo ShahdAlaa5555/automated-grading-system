@@ -1,5 +1,6 @@
 from ollama import chat
 from config import MODEL
+from grader2 import grade_answer
 
 
 # ==========================================================
@@ -76,20 +77,42 @@ def generate_answers(questions, subject):
 
     for section in questions:
 
-        for subquestion in section["subquestions"]:
+       points = section.get("points")
+       print("POINTS =", repr(points))
+       max_points = 1
+
+       for subquestion in section["subquestions"]:
 
             print(
                 f"Generating answer for "
                 f"{section['number']}{subquestion['id']}..."
             )
 
-            answer = generate_reference_answer(
+            # Generate reference answer
+            reference = generate_reference_answer(
                 subquestion["question"],
                 subject
             )
 
-            subquestion["reference_answer"] = answer
+            subquestion["reference_answer"] = reference
 
-            print("Done!")
+            # Grade the student's answer
+            grading = grade_answer(
+                question=subquestion["question"],
+                student_answer=subquestion.get("student_answer", ""),
+                reference_answer=reference,
+                max_points=max_points,
+                subject=subject
+            )
+
+            score = grading.get("score", 0)
+
+            subquestion["score"] = score
+            subquestion["feedback"] = grading.get("feedback", "")
+            subquestion["is_correct"] = score > 0
+
+            print(
+                f"Done! Score: {score}/{max_points}"
+            )
 
     return questions

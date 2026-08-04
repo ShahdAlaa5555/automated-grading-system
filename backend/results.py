@@ -33,7 +33,7 @@ router = APIRouter(tags=["results"])
 
 class QuestionResultOut(BaseModel):
     question_result_id: int
-    question_number: int
+    question_number: str
     question_text: str
     student_answer: str | None
     is_correct: bool | None

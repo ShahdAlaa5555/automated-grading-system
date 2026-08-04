@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 import traceback
-
+import json
 from cleaner import run_pipeline
 from llm_parser import parse_exam
 from reference_generator import generate_answers
@@ -191,24 +191,95 @@ async def upload_exam(
     conn.close()
 
     normalized_subject = subject.strip().lower()
-
     if normalized_subject == "german":
-        # Only German processing is moved to a background task.
-        # This lets the frontend navigate immediately to ProcessingPage
-        # without changing the existing workflows of the other subjects.
         background_tasks.add_task(
             process_german_submission,
             submission_id,
             file_path,
         )
-
-        return {
-            "submission_id": submission_id,
-            "status": "Uploaded",
-            "progress": 0,
-        }
-
     else:
+        background_tasks.add_task(
+            process_submission,
+            submission_id,
+            file_path,
+            normalized_subject,
+        )
+
+    return {
+        "submission_id": submission_id,
+        "status": "Uploaded",
+        "progress": 0,
+    }
+def save_results(submission_id, exam):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for q in exam:
+        # Handle subquestions
+        if "subquestions" in q:
+
+            for sub in q["subquestions"]:
+
+                question_number = f"{q['number']}{sub.get('id','')}"
+
+                cursor.execute(
+                    """
+                    INSERT INTO question_results
+                    (
+                        submission_id,
+                        question_number,
+                        question_text,
+                        student_answer,
+                        ai_is_correct,
+                        ai_feedback
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s)
+                    """,
+                    (
+                        submission_id,
+                        question_number,
+                        sub.get("question", ""),
+                        sub.get("student_answer", ""),
+                        sub.get("is_correct", False),
+                        sub.get("feedback", "")
+                    )
+                )
+
+        else:
+
+            cursor.execute(
+                """
+                INSERT INTO question_results
+                (
+                    submission_id,
+                    question_number,
+                    question_text,
+                    student_answer,
+                    ai_is_correct,
+                    ai_feedback
+                )
+                VALUES (%s,%s,%s,%s,%s,%s)
+                """,
+                (
+                    submission_id,
+                    str(q.get("number")),
+                    q.get("question", ""),
+                    q.get("student_answer", ""),
+                    q.get("is_correct", False),
+                    q.get("feedback", "")
+                )
+            )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+def process_submission(
+    submission_id: int,
+    file_path: str,
+    normalized_subject: str,
+):
+    try:
         update_progress(
             submission_id,
             "Processing",
@@ -222,66 +293,56 @@ async def upload_exam(
             "OCR Complete",
             40,
         )
+
         update_progress(
             submission_id,
             "Grading",
             80,
         )
 
-        exam = parse_exam(lines, normalized_subject)
+        exam = parse_exam(
+            lines,
+            normalized_subject,
+        )
+
         exam = generate_answers(
             exam,
             normalized_subject,
         )
-        save_results(submission_id, exam)
-    update_progress(
-        submission_id,
-        "Released",
-        100,
-    )
-    print(exam)
-    return {
-    "submission_id": submission_id,
-    "exam": exam
-}
-def save_results(submission_id, exam):
-    conn = get_connection()
-    cursor = conn.cursor()
 
-    for q in exam["questions"]:
-        cursor.execute(
-            """
-            INSERT INTO question_results
-            (
-                submission_id,
-                question_number,
-                question_text,
-                student_answer,
-                ai_is_correct,
-                ai_feedback
-            )
-            VALUES (%s,%s,%s,%s,%s,%s)
-            """,
-            (
-                submission_id,
-                q["number"],
-                q["question"],
-                q["student_answer"],
-                q["is_correct"],
-                q["feedback"]
-            )
+        
+        print("========== FINAL EXAM ==========")
+        print(json.dumps(exam, indent=4, ensure_ascii=False))
+        print("================================")
+
+        save_results(
+            submission_id,
+            exam,
         )
-    conn.commit()
-    cursor.close()
-    conn.close()
 
+        update_progress(
+            submission_id,
+            "Released",
+            100,
+        )
+
+        print(exam)
+
+    except Exception:
+        traceback.print_exc()
+
+        update_progress(
+            submission_id,
+            "Failed",
+            100,
+        )
 
 def process_german_submission(submission_id: int, file_path: str):
     """
     Process only German submissions after the upload response is returned.
 
     Keeping this helper German-specific avoids changing the existing
-    processing behavior of Chemistry, Math, and Biology.
+ YY   processing behavior of Chemistry, Math, and Biology.
     """
 
     try:
@@ -298,7 +359,7 @@ def process_german_submission(submission_id: int, file_path: str):
 
         update_progress(
             submission_id,
-            "Completed",
+            "Processing",
             95,
         )
 
@@ -344,6 +405,7 @@ def login(data: LoginRequest):
             """,
             (email,)
         )
+
         teacher = cursor.fetchone()
 
         if teacher is None or teacher["password"] != data.password:
@@ -356,6 +418,7 @@ def login(data: LoginRequest):
             cursor,
             teacher["teacher_id"]
         )
+
         return {
             "success": True,
             "message": "Login successful",
@@ -367,15 +430,6 @@ def login(data: LoginRequest):
             },
         }
 
-    cursor.close()
-    conn.close()
-
-    return response
-    
-    #     "submission_id": submission_id,
-    #     "subject": normalized_subject,
-    #     "exam": exam,
-    # }
     finally:
         cursor.close()
         conn.close()

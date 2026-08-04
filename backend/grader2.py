@@ -5,30 +5,15 @@ from config import MODEL
 
 
 # =====================================================
-# LOAD JSON
-# =====================================================
-
-def load_json(path):
-
-    with open(
-        path,
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        return json.load(f)
-
-
-
-# =====================================================
 # GRADE ONE QUESTION
 # =====================================================
 
 def grade_answer(
-        question,
-        student_answer,
-        max_points,
-        subject
+    question,
+    student_answer,
+    reference_answer,
+    max_points,
+    subject,
 ):
 
     if subject == "chemistry":
@@ -46,29 +31,22 @@ def grade_answer(
     else:
         teacher = "deutscher Lehrer"
 
-
-
     prompt = f"""
-
 Du bist ein erfahrener {teacher}.
 
 Bewerte die Schülerantwort.
 
-
 Aufgabe:
-
 {question}
 
-
 Schülerantwort:
-
 {student_answer}
 
+Musterlösung:
+{reference_answer}
 
 Maximale Punkte:
-
 {max_points}
-
 
 Bewertungsregeln:
 
@@ -79,17 +57,7 @@ Bewertungsregeln:
 - Kleine OCR-Fehler ignorieren.
 - Rechtschreibfehler ignorieren.
 - Beurteile nur die fachliche Richtigkeit.
-- Nicht jede kleine Ungenauigkeit führt zu Punktabzug.
-- Wenn der Schüler die meisten geforderten Inhalte nennt,
-  soll die Punktzahl entsprechend hoch sein.
-- Bei Rechnungen:
-  - richtige Formel zählt
-  - richtiger Ansatz zählt
-  - Rechenfehler nur teilweise abziehen.
-- Bei Chemie:
-  - falsche Indizes durch OCR (z.B. H2 wird Hz)
-    nicht hart bestrafen.
-
+- Keine Erklärung deines Denkprozesses.
 
 Antworte ausschließlich als JSON:
 
@@ -97,19 +65,14 @@ Antworte ausschließlich als JSON:
     "score": 0,
     "feedback": ""
 }}
-
 """
-
 
     response = chat(
         model=MODEL,
-
         think=False,
-
         options={
             "temperature": 0
         },
-
         messages=[
             {
                 "role": "user",
@@ -118,21 +81,17 @@ Antworte ausschließlich als JSON:
         ]
     )
 
-
     result = response["message"]["content"]
-
 
     print("\n====== QWEN RESPONSE ======")
     print(result)
     print("===========================\n")
 
-
     return extract_json(result)
 
 
-
 # =====================================================
-# EXTRACT JSON FROM QWEN
+# EXTRACT JSON
 # =====================================================
 
 def extract_json(text):
@@ -140,30 +99,22 @@ def extract_json(text):
     start = text.find("{")
     end = text.rfind("}")
 
-
     if start == -1 or end == -1:
-
         return {
             "score": 0,
             "feedback": "Ungültige Modellantwort"
         }
 
-
-    json_text = text[start:end+1]
-
+    json_text = text[start:end + 1]
 
     try:
-
         return json.loads(json_text)
 
-
-    except:
-
+    except Exception:
         return {
             "score": 0,
             "feedback": "JSON konnte nicht gelesen werden"
         }
-
 
 
 # =====================================================
@@ -172,217 +123,67 @@ def extract_json(text):
 
 def grade_exam(exam, subject):
 
-    results = []
-
-
     total_score = 0
-
     total_points = 0
 
+    for section in exam:
 
-
-    for section in exam["sections"]:
-
-
-        section_points = int(
-            section["points"]
-        )
-
-
-        section_result = {
-
-            "number": section["number"],
-
-            "title": section["title"],
-
-            "subquestions": []
-
-        }
-
-
+        section_points = int(section.get("points", 1) or 1)
 
         for question in section["subquestions"]:
 
-
             print(
-                f"Grading {section['number']}{question['id']}..."
+                f"Grading {section['number']}{question.get('id', '')}..."
             )
-
 
             grading = grade_answer(
-
-                question["question"],
-
-                question["student_answer"],
-
+                question.get("question", ""),
+                question.get("student_answer", ""),
+                question.get("reference_answer", ""),
                 section_points,
-
-                subject
-
+                subject,
             )
+            print("\n========================")
+            print("QUESTION :", question.get("question", ""))
+            print("STUDENT :", question.get("student_answer", ""))
+            print("REFERENCE :", question.get("reference_answer", ""))
+            print("GRADING :", grading)
+            print("========================\n")
 
-
-            score = grading.get(
-                "score",
-                0
-            )
-
-
-            # safety limit
-
-            if score > section_points:
-
-                score = section_points
-
+            score = grading.get("score", 0)
 
             if score < 0:
-
                 score = 0
 
+            if score > section_points:
+                score = section_points
 
+            # Save grading back into the question
+            question["score"] = score
+            question["max_points"] = section_points
+            question["feedback"] = grading.get("feedback", "")
+            question["is_correct"] = (score == section_points)
 
             total_score += score
-
             total_points += section_points
 
-
-
-            section_result["subquestions"].append({
-
-                "id": question["id"],
-
-                "question": question["question"],
-
-                "student_answer":
-                    question["student_answer"],
-
-                "score":
-                    score,
-
-                "max_points":
-                    section_points,
-
-                "feedback":
-                    grading.get(
-                        "feedback",
-                        ""
-                    )
-
-            })
-
-
-        results.append(section_result)
-
-
-
-    percentage = 0
-
-
-    if total_points > 0:
-
-        percentage = round(
-
-            (total_score / total_points) * 100,
-
-            2
-
-        )
-
-
-
-    return {
-
-
-        "total_score":
-            total_score,
-
-
-        "total_points":
-            total_points,
-
-
-        "percentage":
-            percentage,
-
-
-        "questions":
-            results
-
-    }
-
-
-
-# =====================================================
-# MAIN
-# =====================================================
-
-if __name__ == "__main__":
-
-
-    subject = "chemistry"
-
-
-    exam = load_json(
-
-        "outputs/questions.json"
-
-    )
-
-
-
-    result = grade_exam(
-
-        exam,
-
-        subject
-
-    )
-
-
-
-    with open(
-
-        "grading_results.json",
-
-        "w",
-
-        encoding="utf-8"
-
-    ) as f:
-
-
-        json.dump(
-
-            result,
-
-            f,
-
-            indent=4,
-
-            ensure_ascii=False
-
-        )
-
-
+            print(
+                f"Score: {score}/{section_points}"
+            )
 
     print("\n====================")
     print("FINAL RESULT")
     print("====================")
+    print(f"Score: {total_score}/{total_points}")
 
+    if total_points > 0:
+        percentage = round(
+            total_score / total_points * 100,
+            2,
+        )
+    else:
+        percentage = 0
 
-    print(
-        "Score:",
-        result["total_score"],
-        "/",
-        result["total_points"]
-    )
+    print(f"Percentage: {percentage}%")
 
-
-    print(
-        "Percentage:",
-        result["percentage"],
-        "%"
-    )
-
-
-    print("\nFinished grading!")
+    return exam
